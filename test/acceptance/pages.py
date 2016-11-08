@@ -3,6 +3,7 @@ Page objects for UI-level acceptance tests.
 """
 
 import os
+import time
 
 from bok_choy.page_object import PageObject
 from bok_choy.promise import EmptyPromise, BrokenPromise
@@ -356,6 +357,11 @@ class AssessmentPage(OpenAssessmentPage, AssessmentMixin):
             AssessmentPage
 
         """
+        # This is an evil anti-pattern. Was experiencing sporadic failures when completing assessments after
+        # the first, and could not find anything to wait on that fixed the failures.
+        # Investigate further in TNL-5905
+        if num_completed > 0:
+            time.sleep(5)
         EmptyPromise(
             lambda: self.num_completed >= num_completed,
             "Completed at least one assessment."
