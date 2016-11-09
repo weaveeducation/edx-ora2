@@ -39,6 +39,7 @@ class BaseAssessmentPage(PageObject):
             loc=self._problem_location
         )
 
+
 class MultipleAssessmentPage(BaseAssessmentPage):
     """
     Page object for subsection unit containing multiple ORA problems
@@ -64,7 +65,9 @@ class OpenAssessmentPage(BaseAssessmentPage):
 
         The default implementation just returns the selector
         """
-        return "{vertical_index_class} {selector}".format(vertical_index_class=self.vertical_index_class, selector=selector)
+        return "{vertical_index_class} {selector}".format(
+            vertical_index_class=self.vertical_index_class, selector=selector
+        )
 
     @property
     def vertical_index_class(self):
