@@ -74,19 +74,21 @@
                         {% endfor %}
                         {% if file_upload_type %}
                         <li class="field">
-                            <div id="upload__error">
+                            {% for file_num in upload_file_count_lst %}
+                            <div id="upload{{ file_num }}__error">
                                 <div class="message message--inline message--error message--error-server">
                                     <h3 class="message__title">{% trans "We could not upload this file" %}</h3>
                                     <div class="message__content"></div>
                                 </div>
                             </div>
-                            <label class="sr" for="submission__answer__upload">{% trans "Select a file to upload for this submission." %}</label>
-                            <input type="file" id="submission__answer__upload" class="file--upload">
+                            <label class="sr" for="submission__answer__upload__{{ file_num }}">{% trans "Select a file to upload for this submission." %}</label>
+                            <input type="file" id="submission__answer__upload__{{ file_num }}" class="file--upload" num="{{ file_num }}">
+                            {% endfor %}
                             <button type="submit" id="file__upload" class="action action--upload is--disabled">{% trans "Upload your file" %}</button>
                         </li>
                         {% endif %}
 
-                        {% include "openassessmentblock/oa_uploaded_file.html" with file_upload_type=file_upload_type file_url=file_url class_prefix="submission__answer"%}
+                        {% include "openassessmentblock/oa_uploaded_file.html" with file_upload_type=file_upload_type file_urls=file_urls class_prefix="submission__answer"%}
                     </ol>
 
                     <span class="tip">{% trans "You may continue to work on your response until you submit it." %}</span>
