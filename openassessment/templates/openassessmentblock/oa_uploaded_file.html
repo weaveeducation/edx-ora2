@@ -11,7 +11,7 @@
     {% endif %}
 
     {% for file_num, file_url in file_urls %}
-        <div class="{{ class_prefix }}__display__file__{{ file_num }} {% if not file_url %}is--hidden{% endif %}" id="submission__upload__{{ file_num }}" data-upload-type="{{ file_upload_type }}">
+        <div class="{{ class_prefix }}__display__file {% if not file_url %}is--hidden{% endif %}" id="submission__upload__{{ file_num }}" data-upload-type="{{ file_upload_type }}">
             {% if file_upload_type == "image" %}
                 <img id="submission__answer__file__{{ file_num }}"
                      class="submission--image"

@@ -121,7 +121,6 @@ OpenAssessment.ResponseView.prototype = {
             function(eventObject) {
                 // Override default form submission
                 eventObject.preventDefault();
-                $('.submission__answer__display__file', view.element).removeClass('is--hidden');
                 view.uploadFiles();
             }
         );
@@ -512,7 +511,7 @@ OpenAssessment.ResponseView.prototype = {
             );
         } else {
             this.baseView.toggleActionError(uploadKey, null);
-            this.files[fileKey]['file'] = files[0]
+            this.files[fileKey]['file'] = files[0];
         }
         $("#file__upload").toggleClass("is--disabled", $.isEmptyObject(this.files));
     },
