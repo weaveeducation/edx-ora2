@@ -702,7 +702,7 @@ def serialize_content_to_xml(oa_block, root):
 
     # Set upload_file_count
     if oa_block.upload_file_count:
-        root.set('upload_file_count', unicode(upload_file_count))
+        root.set('upload_file_count', unicode(oa_block.upload_file_count))
 
     # Set File upload settings
     if oa_block.file_upload_type:
