@@ -8,7 +8,6 @@ from submissions import api as sub_api
 
 from openassessment.assessment.errors import SelfAssessmentError, PeerAssessmentError
 from openassessment.fileupload import api as file_upload_api
-from openassessment.fileupload.exceptions import FileUploadError
 from openassessment.xblock.data_conversion import create_submission_dict
 
 
@@ -74,17 +73,8 @@ class LeaderboardMixin(object):
             self.leaderboard_show
         )
         for score in scores:
-            score['files'] = []
-            if 'file_keys' in score['content']:
-                for idx, key in enumerate(score['content']['file_keys']):
-                    url = ''
-                    try:
-                        url = file_upload_api.get_download_url(key)
-                    except FileUploadError:
-                        pass
-                    score['files'].append((idx, url))
-            elif 'file_key' in score['content']:
-                score['files'].append(0, file_upload_api.get_download_url(score['content']['file_key']))
+            if 'file_key' in score['content']:
+                score['file'] = file_upload_api.get_download_url(score['content']['file_key'])
             if 'text' in score['content'] or 'parts' in score['content']:
                 submission = {'answer': score.pop('content')}
                 score['submission'] = create_submission_dict(submission, self.prompts)
@@ -96,7 +86,10 @@ class LeaderboardMixin(object):
 
             score.pop('content', None)
 
-        context = {'topscores': scores, 'allow_latex': self.allow_latex, 'file_upload_type': self.file_upload_type,}
+        context = {'topscores': scores,
+                   'allow_latex': self.allow_latex,
+                   'file_upload_type': self.file_upload_type,
+                   'xblock_id': self.get_xblock_id()}
 
         return 'openassessmentblock/leaderboard/oa_leaderboard_show.html', context
 
@@ -107,4 +100,4 @@ class LeaderboardMixin(object):
         Returns:
             template_path (string), tuple of context (dict)
         """
-        return 'openassessmentblock/leaderboard/oa_leaderboard_waiting.html', {}
+        return 'openassessmentblock/leaderboard/oa_leaderboard_waiting.html', {'xblock_id': self.get_xblock_id()}

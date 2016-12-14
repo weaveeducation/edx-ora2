@@ -53,7 +53,7 @@ describe("OpenAssessment.BaseView", function() {
         server.renderLatex = jasmine.createSpy('renderLatex');
 
         // Create the object under test
-        var el = $("#openassessment").get(0);
+        var el = $(".openassessment").get(0);
         view = new OpenAssessment.BaseView(runtime, el, server);
         view.load();
         expect($(".openassessment__steps__step").hasClass('is--loading')).toBeFalsy();
@@ -80,5 +80,21 @@ describe("OpenAssessment.BaseView", function() {
         // Peer should be called twice, once when loading the views,
         // and again after the peer has been assessed.
         expect(numPeerLoads).toBe(2);
+    });
+
+    it("Steps should have aria-controls and be visible by default", function() {
+        $(".ui-slidable__container", view.element).each(function() {
+            var step = this;
+            var $content = $('.ui-slidable__content', step),
+                $button = $('.ui-slidable', step)[0];
+
+            expect($button).toHaveAttr('aria-controls', $content.id);
+            expect($content).toHaveAttr('aria-labelledby', $button.id);
+
+            if($(step).hasClass('is--showing')) {
+                expect($button).toHaveAttr('aria-expanded', 'true');
+                expect(step).toHaveClass('is--showing');
+            };
+        });
     });
 });

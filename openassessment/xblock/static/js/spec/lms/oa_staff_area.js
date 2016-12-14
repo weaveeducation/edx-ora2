@@ -96,7 +96,7 @@ describe('OpenAssessment.StaffAreaView', function() {
         if (staffAreaTemplate) {
             server.staffAreaTemplate = staffAreaTemplate;
         }
-        var assessmentElement = $('#openassessment').get(0);
+        var assessmentElement = $('.openassessment').get(0);
         var baseView = new OpenAssessment.BaseView(runtime, assessmentElement, server, {});
         var view = new OpenAssessment.StaffAreaView(assessmentElement, server, baseView);
         view.load();
@@ -130,7 +130,7 @@ describe('OpenAssessment.StaffAreaView', function() {
     };
 
     var fillAssessment = function($assessment, type) {
-        $('#staff-'+ type+ '__assessment__rubric__question--2__feedback', $assessment).val('Text response');
+        $('#staff-'+ type+ '__assessment__rubric__question--2__feedback__', $assessment).val('Text response');
         $('.question__answers', $assessment).each(function() {
             $('input[type="radio"]', this).first().click();
         });
@@ -409,20 +409,21 @@ describe('OpenAssessment.StaffAreaView', function() {
         it('updates aria-expanded when toggling slidable sections', function() {
             var staffArea = createStaffArea(), $slidableControls;
             chooseStudent(staffArea, 'testStudent');
-            $slidableControls = $('.ui-slidable', staffArea.element);
+            $slidableControls = $('.ui-staff.ui-slidable', staffArea.element);
             expect($slidableControls.length).toBe(5);
             expect($slidableControls).toHaveAttr('aria-expanded', 'false');
-            $slidableControls.click();
+            $slidableControls[0].click();
             expect($slidableControls).toHaveAttr('aria-expanded', 'true');
         });
 
         it('links slidable controls with content', function() {
             var staffArea = createStaffArea();
             chooseStudent(staffArea, 'testStudent');
-            $('.ui-slidable', staffArea.element).each(function(index, slidable) {
-                var content = $(slidable).next('.ui-slidable__content');
-                expect(content).toHaveAttr('aria-labelledby', slidable.id);
-                expect(slidable).toHaveAttr('aria-controls', content.id);
+            $('.ui-slidable__control', staffArea.element).each(function(index, control) {
+                var content = $(control).next('.ui-slidable__content');
+                var button = $(control).find('.ui-slidable');
+                expect(content).toHaveAttr('aria-labelledby', button.id);
+                expect(button).toHaveAttr('aria-controls', content.id);
             });
         });
 
@@ -503,9 +504,9 @@ describe('OpenAssessment.StaffAreaView', function() {
                 chooseStudent(staffArea, 'testStudent');
                 $assessment = getAssessment(staffArea, staffAreaTab);
                 $submitButton = $('.action--submit', $assessment);
-                expect($submitButton).toHaveClass('is--disabled');
+                expect(staffArea.staffSubmitEnabled()).toBe(false);
                 fillAssessment($assessment, gradingType);
-                expect($submitButton).not.toHaveClass('is--disabled');
+                expect(staffArea.staffSubmitEnabled()).toBe(true);
             });
 
             it('can submit a staff grade override', function() {
@@ -642,9 +643,9 @@ describe('OpenAssessment.StaffAreaView', function() {
             $assessment = getAssessment(staffArea, staffAreaTab);
             $submitButtons = $('.action--submit', $assessment);
             expect($submitButtons.length).toBe(2);
-            expect($submitButtons).toHaveClass('is--disabled');
+            expect($submitButtons).toHaveAttr('disabled');
             fillAssessment($assessment, gradingType);
-            expect($submitButtons).not.toHaveClass('is--disabled');
+            expect($submitButtons).not.toHaveAttr('disabled');
         });
 
         it('can submit a staff grade', function() {

@@ -23,14 +23,18 @@ OpenAssessment.SelfView.prototype = {
     /**
     Load the self assessment view.
     **/
-    load: function() {
+    load: function(usageID) {
         var view = this;
+        var stepID = '.step--self-assessment';
         this.server.render('self_assessment').done(
             function(html) {
                 // Load the HTML and install event handlers
-                $('#openassessment__self-assessment', view.element).replaceWith(html);
-                view.server.renderLatex($('#openassessment__self-assessment', view.element));
+                $(stepID, view.element).replaceWith(html);
+                view.server.renderLatex($(stepID, view.element));
                 view.installHandlers();
+                if (typeof usageID !== 'undefined' && $(stepID, view.element).hasClass("is--showing")) {
+                    $("[id='oa_self_" + usageID + "']", view.element).focus();
+                }
             }
         ).fail(function() {
             view.showLoadError('self-assessment');
@@ -42,13 +46,13 @@ OpenAssessment.SelfView.prototype = {
     **/
     installHandlers: function() {
         var view = this;
-        var sel = $('#openassessment__self-assessment', view.element);
+        var sel = $('.step--self-assessment', view.element);
 
         // Install a click handler for collapse/expand
         this.baseView.setUpCollapseExpand(sel);
 
         // Initialize the rubric
-        var rubricSelector = $("#self-assessment--001__assessment", this.element);
+        var rubricSelector = $(".self-assessment--001__assessment", this.element);
         if (rubricSelector.size() > 0) {
             var rubricElement = rubricSelector.get(0);
             this.rubric = new OpenAssessment.Rubric(rubricElement);
@@ -66,7 +70,7 @@ OpenAssessment.SelfView.prototype = {
         }
 
         // Install a click handler for the submit button
-        sel.find('#self-assessment--001__assessment__submit').click(
+        sel.find('.self-assessment--001__assessment__submit').click(
             function(eventObject) {
                 // Override default form submission
                 eventObject.preventDefault();
@@ -93,13 +97,7 @@ OpenAssessment.SelfView.prototype = {
      >> true
      **/
     selfSubmitEnabled: function(enabled) {
-        var button = $('#self-assessment--001__assessment__submit', this.element);
-        if (typeof enabled === 'undefined') {
-            return !button.hasClass('is--disabled');
-        } else {
-            button.toggleClass('is--disabled', !enabled);
-            return enabled;
-        }
+        return this.baseView.buttonEnabled('.self-assessment--001__assessment__submit', enabled);
     },
 
     /**
@@ -125,6 +123,7 @@ OpenAssessment.SelfView.prototype = {
         // Send the assessment to the server
         var view = this;
         var baseView = this.baseView;
+        var usageID = baseView.getUsageID();
         baseView.toggleActionError('self', null);
         view.selfSubmitEnabled(false);
 
@@ -135,8 +134,9 @@ OpenAssessment.SelfView.prototype = {
         ).done(
             function() {
                 baseView.unsavedWarningEnabled(false, view.UNSAVED_WARNING_KEY);
-                baseView.loadAssessmentModules();
-                baseView.scrollToTop();
+                baseView.loadAssessmentModules(usageID);
+                view.load(usageID);
+                baseView.scrollToTop(".step--self-assessment");
             }
         ).fail(function(errMsg) {
             baseView.toggleActionError('self', errMsg);

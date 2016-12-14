@@ -20,7 +20,7 @@
   .staff-assessment__display__header, .submission__answer__display__header, .student-training__display__header {
     margin-bottom: 0 !important;
     border-radius: 0 !important;
-    padding-bottom: 0 !important;
+    padding-bottom: 2px !important;
     font-size: initial !important;
     border-bottom: none !important;
   }
@@ -38,7 +38,7 @@
   .openassessment__steps .openassessment__steps__step .step__header {
 
     .step__deadline {
-      color: $heading-secondary-color;
+      color: $heading-color;
     }
 
     // step title/name
@@ -67,7 +67,7 @@
           @extend %t-strong;
           content: counter(item, decimal);
           counter-increment: item;
-          color: $color-decorative-tertiary;
+          color: $copy-color;
         }
       }
     }
@@ -110,18 +110,6 @@
     color: inherit;
   }
 
-  .ui-toggle-visibility .ui-toggle-visibility__control, .ui-toggle-visibility .ui-toggle-visibility__control .step__label {
-    color: $action-primary-color;
-
-    &:hover, &:focus {
-      color: $action-primary-color-focus;
-    }
-
-    &:active, &.is--current {
-      color: $action-primary-color-active;
-    }
-  }
-
   // peer assessment
   .step--peer-assessment .list--peer-assessments {
     list-style: none outside none !important;
@@ -132,7 +120,7 @@
 
   .self-assessment__display__title, .peer-assessment__display__title {
     margin-bottom: ($baseline-v/2) !important;
-    color: $heading-secondary-color !important;
+    color: $heading-color !important;
   }
 
   // shown submission/results
@@ -141,7 +129,7 @@
   }
 
   // submission/results collapse and expand targets
-  .question__title.ui-toggle-visibility__control {
+  .question__title.ui-slidable {
 
     .question__title__copy  {
       color: inherit !important;
@@ -151,14 +139,10 @@
 
   .step--grade .step__title {
     width: 100% !important;
-
-    .wrapper--copy {
-      display: block !important;
-    }
   }
 
   // actions
-  .action--submit, .action--save {
+  .action--submit, .action--save, .action--upload {
     text-shadow: none !important;
     box-shadow: none !important;
   }

@@ -4,6 +4,7 @@ UI-level acceptance tests for OpenAssessment accessibility.
 import os
 import unittest
 from tests import OpenAssessmentTest, StaffAreaPage, FullWorkflowMixin, MultipleOpenAssessmentMixin
+from pages import MultipleAssessmentPage
 
 
 class OpenAssessmentA11yTest(OpenAssessmentTest):
@@ -16,23 +17,16 @@ class OpenAssessmentA11yTest(OpenAssessmentTest):
         self.auto_auth_page.visit()
 
     def _check_a11y(self, page):
+        self._configure_a11y_audit_config(page)
+        page.a11y_audit.check_for_accessibility_errors()
+
+    def _configure_a11y_audit_config(self, page):
         page.a11y_audit.config.set_scope(
             exclude=[
-                ".container-footer",
-                ".nav-skip",
-                "#global-navigation",
+                "#footer-edx-v3",  # Links to Facebook, Twitter, etc. Populated in production, but not here.
+                ".instructor-info-action",  # Staff Debug Info link (general for all XBlocks)
             ],
         )
-        page.a11y_audit.config.set_rules({
-            "ignore": [
-                "color-contrast",  # TODO: AC-198
-                "empty-heading",  # TODO: AC-197
-                "link-href",  # TODO: AC-199
-                "link-name",  # TODO: AC-196
-                "skip-link",  # TODO: AC-179
-            ]
-        })
-        page.a11y_audit.check_for_accessibility_errors()
 
 
 class SelfAssessmentA11yTest(OpenAssessmentA11yTest):
@@ -159,7 +153,7 @@ class StaffAreaA11yTest(OpenAssessmentA11yTest):
 
         # Refresh the page, then verify accessibility of the Staff Grade section (marked Complete).
         self.browser.refresh()
-        self._verify_staff_grade_section(self.STAFF_GRADE_EXISTS, None)
+        self._verify_staff_grade_section(self.STAFF_GRADE_EXISTS)
 
         self._check_a11y(self.staff_asmnt_page)
 
@@ -252,32 +246,21 @@ class MultipleOpenAssessmentA11yTest(OpenAssessmentA11yTest, MultipleOpenAssessm
         super(MultipleOpenAssessmentA11yTest, self).setUp('multiple_ora', staff=True)
         # Staff area page is not present in OpenAssessmentTest base class, so we are adding it here.
         self.staff_area_page = StaffAreaPage(self.browser, self.problem_loc)
-
-    # TODO: remove this method override. See TNL-1593
-    def _check_a11y(self, page):
-        page.a11y_audit.config.set_scope(
-            exclude=[
-                ".container-footer",
-                ".nav-skip",
-                "#global-navigation",
-            ],
-        )
-        page.a11y_audit.config.set_rules({
-            "ignore": [
-                "color-contrast",  # TODO: AC-198
-                "empty-heading",  # TODO: AC-197
-                "link-href",  # TODO: AC-199
-                "link-name",  # TODO: AC-196
-                "skip-link",  # TODO: AC-179
-                "duplicate-id",
-            ]
-        })
-        page.a11y_audit.check_for_accessibility_errors()
+        self.multiple_assessment_page = MultipleAssessmentPage(self.browser, self.problem_loc)
 
     def test_multiple_ora_complete_flow(self):
         """
         Test accessibility when we have a unit containing multiple ORA blocks.
         """
+        # Assess entire problem page for potential duplicate IDs among ORA xblocks
+        self.multiple_assessment_page.a11y_audit.config.set_scope(['#main'])
+        self.multiple_assessment_page.a11y_audit.config.set_rules({
+            "apply": [
+                "duplicate-id"
+            ]
+        })
+        self.multiple_assessment_page.a11y_audit.check_for_accessibility_errors()
+
         # Each problem has vertical index assigned and has a `vert-{vertical_index}` top level class.
         # That also means that all pages are being differentiated by their vertical index number that is assigned to
         # each problem type. We are passing vertical index number and setting it by `self.setup_vertical_index` method
@@ -290,6 +273,25 @@ class MultipleOpenAssessmentA11yTest(OpenAssessmentA11yTest, MultipleOpenAssessm
         # Assess second ORA problem, pass the vertical index number
         self.assess_component(1)
         self._check_a11y(self.peer_asmnt_page)
+
+
+class FileUploadA11yTest(OpenAssessmentA11yTest):
+
+    def setUp(self):
+        super(FileUploadA11yTest, self).setUp('file_upload')
+
+    def test_file_upload(self):
+        self.auto_auth_page.visit()
+        self.submission_page.visit()
+        self._check_a11y(self.submission_page)
+
+    def _configure_a11y_audit_config(self, page):
+        super(FileUploadA11yTest, self)._configure_a11y_audit_config(page)
+        page.a11y_audit.config.set_rules({
+            "ignore": [
+                "list",  # TODO: TNL-5900
+            ]
+        })
 
 
 if __name__ == "__main__":

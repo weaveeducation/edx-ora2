@@ -1,4 +1,4 @@
-"""
+"""""
 A mixin for staff grading.
 """
 import logging
@@ -53,7 +53,11 @@ class StaffAssessmentMixin(object):
             )
             assess_type = data.get('assess_type', 'regrade')
             self.publish_assessment_event("openassessmentblock.staff_assess", assessment, type=assess_type)
-            workflow_api.update_from_assessments(assessment["submission_uuid"], None)
+            workflow_api.update_from_assessments(
+                assessment["submission_uuid"],
+                None,
+                override_submitter_requirements=(assess_type == 'regrade')
+            )
 
         except StaffAssessmentRequestError:
             logger.warning(
@@ -96,19 +100,23 @@ class StaffAssessmentMixin(object):
         path = 'openassessmentblock/staff/oa_staff_grade.html'
         not_available_context = {
             'status_value': self._('Not Available'),
-            'step_classes': 'is--unavailable is--empty is--collapsed',
+            'button_active': 'disabled=disabled aria-expanded=false',
+            'step_classes': 'is--unavailable',
         }
 
         if status == 'cancelled':
             context = {
                 'status_value': self._('Cancelled'),
                 'icon_class': 'fa-exclamation-triangle',
+                'step_classes': 'is--unavailable',
+                'button_active': 'disabled=disabled aria-expanded=false',
             }
         elif status == 'done':  # Staff grade exists and all steps completed.
             context = {
                 'status_value': self._('Complete'),
                 'icon_class': 'fa-check',
-                'step_classes': 'is--complete is--empty is--collapsed',
+                'step_classes': 'is--complete is--empty',
+                'button_active': 'disabled=disabled aria-expanded=false',
             }
         elif status == 'waiting':
             # If we are in the 'waiting' workflow, this means that a staff grade cannot exist
@@ -118,6 +126,8 @@ class StaffAssessmentMixin(object):
                 'status_value': self._('Not Available'),
                 'message_title': self._('Waiting for a Staff Grade'),
                 'message_content': self._('Check back later to see if a course staff member has assessed your response. You will receive your grade after the assessment is complete.'),
+                'step_classes': 'is--showing',
+                'button_active': 'aria-expanded=true',
             }
         elif status is None:  # not started
             context = not_available_context
@@ -128,8 +138,11 @@ class StaffAssessmentMixin(object):
                     'icon_class': 'fa-check',
                     'message_title': self._('You Must Complete the Steps Above to View Your Grade'),
                     'message_content': self._('Although a course staff member has assessed your response, you will receive your grade only after you have completed all the required steps of this problem.'),
+                    'step_classes': 'is--initially--collapsed',
+                    'button_active': 'aria-expanded=false',
                 }
             else:  # Both student and staff still have work to do, just show "Not Available".
                 context = not_available_context
 
+        context['xblock_id'] = self.get_xblock_id()
         return path, context

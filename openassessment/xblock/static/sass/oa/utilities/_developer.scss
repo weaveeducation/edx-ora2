@@ -27,10 +27,6 @@
 // Developer styles for Staff Section
 // --------------------
 
-// edX constants
-$lighter-base-font-color: rgb(100,100,100);
-$link-hover: $edx-blue-l1 !default; // from our Pattern Library http://ux.edx.org/elements/colors/
-
 .wrapper--openassessment .wrapper--staff-area {
   width: 100%;
   overflow: auto;
@@ -47,9 +43,10 @@ $link-hover: $edx-blue-l1 !default; // from our Pattern Library http://ux.edx.or
       @extend %btn-reset;
 
       padding: ($baseline-v/4) ($baseline-v/2);
+      font-size: 12px;
       border-radius: ($baseline-v/4);
       text-transform: uppercase;
-      color: $lighter-base-font-color;
+      color: $copy-color;
       background-color: $shadow-l2;
 
       &.is--active {
@@ -63,7 +60,7 @@ $link-hover: $edx-blue-l1 !default; // from our Pattern Library http://ux.edx.or
 
       &:hover {
         color: white;
-        background-color: $link-hover;
+        background-color: $action-primary-color;
       }
     }
   }
@@ -120,7 +117,7 @@ $link-hover: $edx-blue-l1 !default; // from our Pattern Library http://ux.edx.or
   }
 
   .student__answer__display__content {
-    border: 1px solid rgba($copy-staff-color, 0.25);
+    border: 1px solid rgba($heading-staff-color, 0.25);
     padding: ($baseline-v/2) ($baseline-h/4);
     margin-bottom: ($baseline-v/2);
   }
@@ -162,7 +159,7 @@ $link-hover: $edx-blue-l1 !default; // from our Pattern Library http://ux.edx.or
   .student-training__display__title {
     @extend %t-heading;
     margin-bottom: ($baseline-v/2);
-    color: $heading-secondary-color;
+    color: $heading-color;
   }
 
   .student-training__display__response {
@@ -212,6 +209,7 @@ $link-hover: $edx-blue-l1 !default; // from our Pattern Library http://ux.edx.or
       width: 0;
       padding: 0;
       margin: 0;
+      display: none;
 
       .step__header {
         border-bottom: none;
@@ -229,6 +227,7 @@ $link-hover: $edx-blue-l1 !default; // from our Pattern Library http://ux.edx.or
       width: 0;
       padding: 0;
       margin: 0;
+      display: none;
 
       .step__header {
         border-bottom: none;
@@ -1090,77 +1089,77 @@ $link-hover: $edx-blue-l1 !default; // from our Pattern Library http://ux.edx.or
   max-width: 100%;
 }
 
-#openassessment__leaderboard {
-  font-family: "Open Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
+.openassessment {
+  .step--leaderboard {
+    font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
-  .step__counter, .step__counter:before {
-    display: none;
-  }
+    .step__title {
+      .step__counter, .step__counter:before {
+        display: none;
+      }
 
-  .step__title {
-
-    .wrapper--copy{
-      @include margin-left(0);
-      @include padding-left(0);
-      @include border-left(0);
-      width: 100%;
+      .wrapper--copy {
+        @include margin-left(0);
+        @include padding-left(0);
+        @include border-left(0);
+      }
     }
-  }
 
-  .step__label, .grade__value {
-    display: inline-block;
-    vertical-align: middle;
-  }
+    .step__label, .grade__value {
+      display: inline-block;
+      vertical-align: middle;
+    }
 
-  .step__label {
-    @include margin-right(($baseline-h/4));
-  }
+    .step__label {
+      @include margin-right(($baseline-h/4));
+    }
 
-  .leaderboard__title{
-    @extend %t-superheading;
-    color: $heading-primary-color;
-  }
+    .leaderboard__title {
+      @extend %t-superheading;
+      color: $heading-color;
+    }
 
-  .list.leaderboard__score__list{
-    list-style-type: none;
+    .list.leaderboard__score__list {
+      list-style-type: none;
 
-    li.leaderboard__score__item {
-      margin: 15px 0;
+      li.leaderboard__score__item {
+        margin: 15px 0;
 
-      .leaderboard__list__number{
-        display: inline-block;
-        background: $edx-gray-d2;
-        color: white;
-        @include padding(5px, 5px, 3px, 5px);
-        font-size: 16px;
-        min-width: 35px;
-        @include text-align(center);
-        @include border-top-right-radius(2px);
-        @include border-top-left-radius(2px);
-      }
+        .leaderboard__list__number {
+          display: inline-block;
+          background: $edx-gray-d2;
+          color: white;
+          @include padding(5px, 5px, 3px, 5px);
+          font-size: 16px;
+          min-width: 35px;
+          @include text-align(center);
+          @include border-top-right-radius(2px);
+          @include border-top-left-radius(2px);
+        }
 
-      .leaderboard__score__image{
-        max-height:150px;
-        max-width:100%;
-        @include margin-right(20px);
-        margin-bottom: 20px;
-      }
+        .leaderboard__score__image {
+          max-height: 150px;
+          max-width: 100%;
+          @include margin-right(20px);
+          margin-bottom: 20px;
+        }
 
-      .leaderboard__score__title{
-        font-size: 15px;
-        color: $edx-gray-l1;
-        text-transform: uppercase;
-        display: inline-block;
-        @include padding-left(15px);
-      }
+        .leaderboard__score__title {
+          font-size: 15px;
+          color: $edx-gray-l1;
+          text-transform: uppercase;
+          display: inline-block;
+          @include padding-left(15px);
+        }
 
-      .leaderboard__answer{
-        border-top: 2px solid $edx-gray-d2;
-        @include single-box-shadow(0, 0, 3px, 1px, rgba(10, 10, 10, 0.1), inset);
-        padding: 10px;
-        max-height: 200px;
-        overflow-y: scroll;
-        font-size: 14px;
+        .leaderboard__answer {
+          border-top: 2px solid $edx-gray-d2;
+          @include single-box-shadow(0, 0, 3px, 1px, rgba(10, 10, 10, 0.1), inset);
+          padding: 10px;
+          max-height: 200px;
+          overflow-y: scroll;
+          font-size: 14px;
+        }
       }
     }
   }

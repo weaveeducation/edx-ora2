@@ -443,7 +443,6 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
                 assessments: options.assessments,
                 editor_assessments_order: options.editorAssessmentsOrder,
                 file_upload_type: options.fileUploadType,
-                upload_file_count: options.uploadFileCountNum,
                 white_listed_file_types: options.fileTypeWhiteList,
                 allow_latex: options.latexEnabled,
                 leaderboard_show: options.leaderboardNum
@@ -491,13 +490,13 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
          * specified service used for uploading files on success, or with an error message
          * upon failure.
          */
-        getUploadUrl: function(contentType, filename, fileNum) {
+        getUploadUrl: function(contentType, filename) {
             var url = this.url('upload_url');
             return $.Deferred(function(defer) {
                 $.ajax({
                     type: "POST",
                     url: url,
-                    data: JSON.stringify({contentType: contentType, filename: filename, filenum: fileNum}),
+                    data: JSON.stringify({contentType: contentType, filename: filename}),
                     contentType: jsonContentType
                 }).done(function(data) {
                     if (data.success) { defer.resolve(data.url); }
@@ -514,11 +513,11 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
          * @returns {promise} A promise which resolves with a temporary download URL for
          * retrieving documents from s3 on success, or with an error message upon failure.
          */
-        getDownloadUrl: function(fileNum) {
+        getDownloadUrl: function() {
             var url = this.url('download_url');
             return $.Deferred(function(defer) {
                 $.ajax({
-                    type: "POST", url: url, data: JSON.stringify({filenum: fileNum}), contentType: jsonContentType
+                    type: "POST", url: url, data: JSON.stringify({}), contentType: jsonContentType
                 }).done(function(data) {
                     if (data.success) { defer.resolve(data.url); }
                     else { defer.rejectWith(this, [data.msg]); }

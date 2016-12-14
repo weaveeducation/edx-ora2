@@ -17,7 +17,8 @@ OpenAssessment.ResponseView = function(element, server, fileUploader, baseView, 
     this.fileUploader = fileUploader;
     this.baseView = baseView;
     this.savedResponse = [];
-    this.files = {};
+    this.files = null;
+    this.fileType = null;
     this.lastChangeTime = Date.now();
     this.errorOnLastSave = false;
     this.autoSaveTimerId = null;
@@ -42,15 +43,19 @@ OpenAssessment.ResponseView.prototype = {
     /**
      Load the response (submission) view.
      **/
-    load: function() {
+    load: function(usageID) {
         var view = this;
+        var stepID = '.step--response';
         this.server.render('submission').done(
             function(html) {
                 // Load the HTML and install event handlers
-                $('#openassessment__response', view.element).replaceWith(html);
-                view.server.renderLatex($('#openassessment__response', view.element));
+                $(stepID, view.element).replaceWith(html);
+                view.server.renderLatex($(stepID, view.element));
                 view.installHandlers();
                 view.setAutoSaveEnabled(true);
+                if (typeof usageID !== 'undefined' && $(stepID, view.element).hasClass("is--showing")) {
+                    $("[id='oa_response_" + usageID + "']", view.element).focus();
+                }
             }
         ).fail(function() {
             view.baseView.showLoadError('response');
@@ -61,13 +66,12 @@ OpenAssessment.ResponseView.prototype = {
      Install event handlers for the view.
      **/
     installHandlers: function() {
-        var sel = $('#openassessment__response', this.element);
+        var sel = $('.step--response', this.element);
         var view = this;
         var uploadType = '';
         if (sel.find('.submission__answer__display__file').length) {
             uploadType = sel.find('.submission__answer__display__file').data('upload-type');
         }
-
         // Install a click handler for collapse/expand
         this.baseView.setUpCollapseExpand(sel);
 
@@ -76,15 +80,13 @@ OpenAssessment.ResponseView.prototype = {
         var handleChange = function() { view.handleResponseChanged(); };
         sel.find('.submission__answer__part__text__value').on('change keyup drop paste', handleChange);
 
-        var handlePrepareUpload = function(eventData) {
-            view.prepareUpload(eventData.target.files, uploadType, $(eventData.target));
-        };
+        var handlePrepareUpload = function(eventData) { view.prepareUpload(eventData.target.files, uploadType); };
         sel.find('input[type=file]').on('change', handlePrepareUpload);
         // keep the preview as display none at first
-        sel.find('#submission__preview__item').hide();
+        sel.find('.submission__preview__item').hide();
 
         // Install a click handler for submission
-        sel.find('#step--response__submit').click(
+        sel.find('.step--response__submit').click(
             function(eventObject) {
                 // Override default form submission
                 eventObject.preventDefault();
@@ -93,7 +95,7 @@ OpenAssessment.ResponseView.prototype = {
         );
 
         // Install a click handler for the save button
-        sel.find('#submission__save').click(
+        sel.find('.submission__save').click(
             function(eventObject) {
                 // Override default form submission
                 eventObject.preventDefault();
@@ -102,26 +104,27 @@ OpenAssessment.ResponseView.prototype = {
         );
 
         // Install click handler for the preview button
-        sel.find('#submission__preview').click(
+        sel.find('.submission__preview').click(
             function(eventObject) {
                 eventObject.preventDefault();
                 // extract typed-in response and replace newline with br
                 var previewText = sel.find('.submission__answer__part__text__value').val();
-                var previewContainer = sel.find('#preview_content');
+                var previewContainer = sel.find('.preview_content');
                 previewContainer.html(previewText.replace(/\r\n|\r|\n/g,"<br />"));
 
                 // Render in mathjax
-                sel.find('#submission__preview__item').show();
+                sel.find('.submission__preview__item').show();
                 MathJax.Hub.Queue(['Typeset', MathJax.Hub, previewContainer[0]]);
             }
         );
 
         // Install a click handler for the save button
-        sel.find('#file__upload').click(
+        sel.find('.file__upload').click(
             function(eventObject) {
                 // Override default form submission
                 eventObject.preventDefault();
-                view.uploadFiles();
+                $('.submission__answer__display__file', view.element).removeClass('is--hidden');
+                view.fileUpload();
             }
         );
     },
@@ -165,13 +168,7 @@ OpenAssessment.ResponseView.prototype = {
      >> true
      **/
     submitEnabled: function(enabled) {
-        var sel = $('#step--response__submit', this.element);
-        if (typeof enabled === 'undefined') {
-            return !sel.hasClass('is--disabled');
-        } else {
-            sel.toggleClass('is--disabled', !enabled);
-            return enabled;
-        }
+        return this.baseView.buttonEnabled('.step--response__submit', enabled);
     },
 
     /**
@@ -193,12 +190,7 @@ OpenAssessment.ResponseView.prototype = {
      >> true
      **/
     saveEnabled: function(enabled) {
-        var sel = $('#submission__save', this.element);
-        if (typeof enabled === 'undefined') {
-            return !sel.hasClass('is--disabled');
-        } else {
-            sel.toggleClass('is--disabled', !enabled);
-        }
+        return this.baseView.buttonEnabled('.submission__save', enabled);
     },
 
     /**
@@ -207,13 +199,9 @@ OpenAssessment.ResponseView.prototype = {
      Works exactly the same way as saveEnabled method.
      **/
     previewEnabled: function(enabled) {
-        var sel = $('#submission__preview', this.element);
-        if (typeof enabled === 'undefined') {
-            return !sel.hasClass('is--disabled');
-        } else {
-            sel.toggleClass('is--disabled', !enabled);
-        }
+        return this.baseView.buttonEnabled('.submission__preview', enabled);
     },
+
     /**
      Set the save status message.
      Retrieve the save status message.
@@ -225,7 +213,7 @@ OpenAssessment.ResponseView.prototype = {
      string: The current status message.
      **/
     saveStatus: function(msg) {
-        var sel = $('#response__save_status', this.element);
+        var sel = $('.save__submission__label', this.element);
         if (typeof msg === 'undefined') {
             return sel.text();
         } else {
@@ -381,10 +369,10 @@ OpenAssessment.ResponseView.prototype = {
         var fileDefer = $.Deferred();
 
         // check if there is a file selected but not uploaded yet
-        if (!$.isEmptyObject(view.files) && !view.fileUploaded) {
+        if (view.files !== null && !view.fileUploaded) {
             var msg = gettext('Do you want to upload your file before submitting?');
             if (confirm(msg)) {
-                fileDefer = view.uploadFiles();
+                fileDefer = view.fileUpload();
             } else {
                 view.submitEnabled(true);
                 return;
@@ -433,12 +421,14 @@ OpenAssessment.ResponseView.prototype = {
      Transition the user to the next step in the workflow.
      **/
     moveToNextStep: function() {
-        this.load();
-        this.baseView.loadAssessmentModules();
+        var baseView = this.baseView;
+        var usageID = baseView.getUsageID();
+        this.load(usageID);
+        baseView.loadAssessmentModules(usageID);
 
         // Disable the "unsaved changes" warning if the user
         // tries to navigate to another page.
-        this.baseView.unsavedWarningEnabled(false, this.UNSAVED_WARNING_KEY);
+        baseView.unsavedWarningEnabled(false, this.UNSAVED_WARNING_KEY);
     },
 
     /**
@@ -472,48 +462,41 @@ OpenAssessment.ResponseView.prototype = {
      file or custom.
 
      **/
-    prepareUpload: function(files, uploadType, target) {
-        var num = target.attr('num');
-        var uploadKey = 'upload' + num;
-        var fileKey = 'file' + target.attr('num');
-        this.files[fileKey] = {
-            'type': files[0].type,
-            'name': files[0].name,
-            'file': null,
-            'num': num
-        };
+    prepareUpload: function(files, uploadType) {
+        this.files = null;
+        this.fileType = files[0].type;
         var ext = files[0].name.split('.').pop().toLowerCase();
 
         if (files[0].size > this.MAX_FILE_SIZE) {
             this.baseView.toggleActionError(
-                uploadKey,
+                'upload',
                 gettext("File size must be 5MB or less.")
             );
-        } else if (uploadType === "image" && this.data.ALLOWED_IMAGE_MIME_TYPES.indexOf(this.files[fileKey]['type']) === -1) {
+        } else if (uploadType === "image" && this.data.ALLOWED_IMAGE_MIME_TYPES.indexOf(this.fileType) === -1) {
             this.baseView.toggleActionError(
-                uploadKey,
+                'upload',
                 gettext("You can upload files with these file types: ") + "JPG, PNG or GIF"
             );
-        } else if (uploadType === "pdf-and-image" && this.data.ALLOWED_FILE_MIME_TYPES.indexOf(this.files[fileKey]['type']) === -1) {
+        } else if (uploadType === "pdf-and-image" && this.data.ALLOWED_FILE_MIME_TYPES.indexOf(this.fileType) === -1) {
             this.baseView.toggleActionError(
-                uploadKey,
+                'upload',
                 gettext("You can upload files with these file types: ") + "JPG, PNG, GIF or PDF"
             );
         } else if (uploadType === "custom" && this.data.FILE_TYPE_WHITE_LIST.indexOf(ext) === -1) {
             this.baseView.toggleActionError(
-                uploadKey,
+                'upload',
                 gettext("You can upload files with these file types: ") + this.data.FILE_TYPE_WHITE_LIST.join(", ")
             );
         } else if (this.data.FILE_EXT_BLACK_LIST.indexOf(ext) !== -1) {
             this.baseView.toggleActionError(
-                uploadKey,
+                'upload',
                 gettext("File type is not allowed.")
             );
         } else {
-            this.baseView.toggleActionError(uploadKey, null);
-            this.files[fileKey]['file'] = files[0];
+            this.baseView.toggleActionError('upload', null);
+            this.files = files;
         }
-        $("#file__upload").toggleClass("is--disabled", $.isEmptyObject(this.files));
+        $(".file__upload").prop('disabled', this.files === null);
     },
 
     /**
@@ -522,44 +505,27 @@ OpenAssessment.ResponseView.prototype = {
      location.
 
      **/
-    uploadFiles: function() {
+    fileUpload: function() {
         var view = this;
-        var fileUpload = $("#file__upload");
-        fileUpload.addClass("is--disabled");
+        var fileUpload = $(".file__upload");
+        fileUpload.prop('disabled', true);
 
-        var promise = null;
-        var first = false;
-
-
-        $.each(view.files, function(_, obj) {
-            if (!first) {
-                promise = view.fileUpload(view, obj['type'], obj['name'], obj['file'], obj['num']);
-                first = false;
-            } else {
-                promise = promise.then(function() {
-                    return view.fileUpload();
-                });
-            }
-        });
-
-        return promise;
-    },
-
-    fileUpload: function(view, fileType, fileName, file, fileNum) {
         var handleError = function(errMsg) {
-            view.baseView.toggleActionError('upload' + fileNum, errMsg);
+            view.baseView.toggleActionError('upload', errMsg);
+            fileUpload.prop('disabled', false);
         };
 
         // Call getUploadUrl to get the one-time upload URL for this file. Once
         // completed, execute a sequential AJAX call to upload to the returned
         // URL. This request requires appropriate CORS configuration for AJAX
         // PUT requests on the server.
-        return view.server.getUploadUrl(fileType, fileName, fileNum).done(
+        return this.server.getUploadUrl(view.fileType, view.files[0].name).done(
             function(url) {
+                var file = view.files[0];
                 view.fileUploader.upload(url, file)
                     .done(function() {
-                        view.fileUrl(fileType, fileNum);
-                        view.baseView.toggleActionError('upload' + fileNum, null);
+                        view.fileUrl();
+                        view.baseView.toggleActionError('upload', null);
                         view.fileUploaded = true;
                     })
                     .fail(handleError);
@@ -570,11 +536,10 @@ OpenAssessment.ResponseView.prototype = {
     /**
      Set the file URL, or retrieve it.
      **/
-    fileUrl: function(fileType, num) {
+    fileUrl: function() {
         var view = this;
-        var file = $('#submission__answer__file__' + num, view.element);
-        view.server.getDownloadUrl(num).done(function(url) {
-            $('#submission__upload__' + num, view.element).removeClass('is--hidden');
+        var file = $('.submission__answer__file', view.element);
+        view.server.getDownloadUrl().done(function(url) {
             if (file.prop("tagName") === "IMG") {
                 file.attr('src', url);
             } else {

@@ -171,6 +171,7 @@ class StaffAreaMixin(object):
                 self.get_staff_assessment_statistics_context(student_item["course_id"], student_item["item_id"])
             )
 
+        context['xblock_id'] = self.get_xblock_id()
         return path, context
 
     @staticmethod
@@ -325,7 +326,7 @@ class StaffAreaMixin(object):
 
         if submission:
             context["file_upload_type"] = self.file_upload_type
-            context["staff_file_urls"] = self.get_download_url_from_submission(submission)
+            context["staff_file_url"] = self.get_download_url_from_submission(submission)
 
         if self.rubric_feedback_prompt is not None:
             context["rubric_feedback_prompt"] = self.rubric_feedback_prompt
@@ -333,6 +334,7 @@ class StaffAreaMixin(object):
         if self.rubric_feedback_default_text is not None:
             context['rubric_feedback_default_text'] = self.rubric_feedback_default_text
 
+        context['xblock_id'] = self.get_xblock_id()
         return context
 
     def get_student_info_path_and_context(self, student_username):

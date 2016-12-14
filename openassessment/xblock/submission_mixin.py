@@ -8,7 +8,7 @@ from openassessment.fileupload import api as file_upload_api
 from openassessment.fileupload.exceptions import FileUploadError
 from openassessment.workflow.errors import AssessmentWorkflowError
 
-from .resolve_dates import DISTANT_FUTURE
+from .resolve_dates import DISTANT_FUTURE, get_current_time_zone
 
 from data_conversion import create_submission_dict, prepare_submission_for_serialization
 from validation import validate_submission
@@ -191,17 +191,7 @@ class SubmissionMixin(object):
         student_sub_dict = prepare_submission_for_serialization(student_sub_data)
 
         if self.file_upload_type:
-            student_sub_dict['file_keys'] = []
-            for n in range(self.upload_file_count):
-                key_to_save = ''
-                item_key = self._get_student_item_key(n)
-                try:
-                    file_upload_api.get_download_url(item_key)
-                    key_to_save = item_key
-                except FileUploadError:
-                    pass
-                student_sub_dict['file_keys'].append(key_to_save)
-
+            student_sub_dict['file_key'] = self._get_student_item_key()
         submission = api.create_submission(student_item_dict, student_sub_dict)
         self.create_workflow(submission["uuid"])
         self.submission_uuid = submission["uuid"]
@@ -235,7 +225,6 @@ class SubmissionMixin(object):
             return {'success': False, 'msg': self._(u"There was an error uploading your file.")}
         content_type = data['contentType']
         file_name = data['filename']
-        file_num = int(data.get('filenum', 0))
         file_name_parts = file_name.split('.')
         file_ext = file_name_parts[-1] if len(file_name_parts) > 1 else None
 
@@ -252,7 +241,7 @@ class SubmissionMixin(object):
         if file_ext in self.FILE_EXT_BLACK_LIST:
             return {'success': False, 'msg': self._(u"File type is not allowed.")}
         try:
-            key = self._get_student_item_key(file_num)
+            key = self._get_student_item_key()
             url = file_upload_api.get_upload_url(key, content_type)
             return {'success': True, 'url': url}
         except FileUploadError:
@@ -268,21 +257,20 @@ class SubmissionMixin(object):
             A URL to be used for downloading content related to the submission.
 
         """
-        file_num = int(data.get('filenum', 0))
-        return {'success': True, 'url': self._get_download_url(file_num)}
+        return {'success': True, 'url': self._get_download_url()}
 
-    def _get_download_url(self, file_num=0):
+    def _get_download_url(self):
         """
         Internal function for retrieving the download url.
 
         """
         try:
-            return file_upload_api.get_download_url(self._get_student_item_key(file_num))
+            return file_upload_api.get_download_url(self._get_student_item_key())
         except FileUploadError:
             logger.exception("Error retrieving download URL.")
             return ''
 
-    def _get_student_item_key(self, num=0):
+    def _get_student_item_key(self):
         """
         Simple utility method to generate a common file upload key based on
         the student item.
@@ -292,25 +280,9 @@ class SubmissionMixin(object):
 
         """
         student_item_dict = self.get_student_item_dict()
-        num = int(num)
-        if num > 0:
-            student_item_dict['num'] = num
-            return u"{student_id}/{course_id}/{item_id}/{num}".format(
-                **student_item_dict
-            )
-        else:
-            return u"{student_id}/{course_id}/{item_id}".format(
-                **student_item_dict
-            )
-
-    def _get_url_by_file_key(self, key):
-        url = ''
-        try:
-            if key:
-                url = file_upload_api.get_download_url(key)
-        except FileUploadError:
-            logger.exception("Unable to generate download url for file key {}".format(key))
-        return url
+        return u"{student_id}/{course_id}/{item_id}".format(
+            **student_item_dict
+        )
 
     def get_download_url_from_submission(self, submission):
         """
@@ -327,16 +299,14 @@ class SubmissionMixin(object):
             string.
 
         """
-        urls = []
-        if 'file_keys' in submission['answer']:
-            keys = submission['answer'].get('file_keys', '')
-            for idx, key in enumerate(keys):
-                if key:
-                    urls.append((idx, self._get_url_by_file_key(key)))
-        elif 'file_key' in submission['answer']:
-            key = submission['answer'].get('file_key', '')
-            urls.append((0, self._get_url_by_file_key(key)))
-        return urls
+        url = ""
+        key = submission['answer'].get('file_key', '')
+        try:
+            if key:
+                url = file_upload_api.get_download_url(key)
+        except FileUploadError:
+            logger.exception("Unable to generate download url for file key {}".format(key))
+        return url
 
     @staticmethod
     def get_user_submission(submission_uuid):
@@ -406,9 +376,12 @@ class SubmissionMixin(object):
         """
         workflow = self.get_workflow_info()
         problem_closed, reason, start_date, due_date = self.is_closed('submission')
+        user_service = self.runtime.service(self, 'user')
 
         path = 'openassessmentblock/response/oa_response.html'
-        context = {}
+        context = {
+            'time_zone': get_current_time_zone(user_service),
+            "xblock_id": self.get_xblock_id()}
 
         # Due dates can default to the distant future, in which case
         # there's effectively no due date.
@@ -417,12 +390,10 @@ class SubmissionMixin(object):
             context["submission_due"] = due_date
 
         context['file_upload_type'] = self.file_upload_type
-        context['upload_file_count'] = self.upload_file_count if self.file_upload_type else 0
-        context['upload_file_count_lst'] = range(self.upload_file_count) if self.file_upload_type else []
         context['allow_latex'] = self.allow_latex
 
         if self.file_upload_type:
-            context['file_urls'] = [(n, self._get_download_url(n)) for n in range(self.upload_file_count)]
+            context['file_url'] = self._get_download_url()
         if self.file_upload_type == 'custom':
             context['white_listed_file_types'] = self.white_listed_file_types
 

@@ -23,14 +23,18 @@ OpenAssessment.PeerView.prototype = {
     /**
     Load the peer assessment view.
     **/
-    load: function() {
+    load: function(usageID) {
         var view = this;
+        var stepID = ".step--peer-assessment";
         this.server.render('peer_assessment').done(
             function(html) {
                 // Load the HTML and install event handlers
-                $('#openassessment__peer-assessment', view.element).replaceWith(html);
-                view.server.renderLatex($('#openassessment__peer-assessment', view.element));
+                $(stepID, view.element).replaceWith(html);
+                view.server.renderLatex($(stepID, view.element));
                 view.installHandlers(false);
+                if (typeof usageID !== 'undefined' && $(stepID, view.element).hasClass("is--showing")) {
+                    $("[id='oa_peer_" + usageID + "']", view.element).focus();
+                }
             }
         ).fail(function() {
             view.baseView.showLoadError('peer-assessment');
@@ -46,15 +50,18 @@ OpenAssessment.PeerView.prototype = {
     can use to continue assessing peers after they've completed
     their peer assessment requirements.
     **/
-    loadContinuedAssessment: function() {
+    loadContinuedAssessment: function(usageID) {
         var view = this;
         view.continueAssessmentEnabled(false);
         this.server.renderContinuedPeer().done(
             function(html) {
                 // Load the HTML and install event handlers
-                $('#openassessment__peer-assessment', view.element).replaceWith(html);
-                view.server.renderLatex($('#openassessment__peer-assessment', view.element));
+                $('.step--peer-assessment', view.element).replaceWith(html);
+                view.server.renderLatex($('.step--peer-assessment', view.element));
                 view.installHandlers(true);
+                if (typeof usageID !== 'undefined') {
+                    $("[id='oa_peer_" + usageID + "']", view.element).focus();
+                }
             }
         ).fail(function() {
             view.baseView.showLoadError('peer-assessment');
@@ -74,12 +81,7 @@ OpenAssessment.PeerView.prototype = {
 
     **/
     continueAssessmentEnabled: function(enabled) {
-        var button = $('.action--continue--grading', this.element);
-        if (typeof enabled === 'undefined') {
-            return !button.hasClass('is--disabled');
-        } else {
-            button.toggleClass('is--disabled', !enabled);
-        }
+        return this.baseView.buttonEnabled('.action--continue--grading', enabled);
     },
 
     /**
@@ -91,14 +93,14 @@ OpenAssessment.PeerView.prototype = {
             the requirements.
     **/
     installHandlers: function(isContinuedAssessment) {
-        var sel = $('#openassessment__peer-assessment', this.element);
+        var sel = $('.step--peer-assessment', this.element);
         var view = this;
 
         // Install a click handler for collapse/expand
         this.baseView.setUpCollapseExpand(sel);
 
         // Initialize the rubric
-        var rubricSelector = $("#peer-assessment--001__assessment", this.element);
+        var rubricSelector = $(".peer-assessment--001__assessment", this.element);
         if (rubricSelector.size() > 0) {
             var rubricElement = rubricSelector.get(0);
             this.rubric = new OpenAssessment.Rubric(rubricElement);
@@ -116,7 +118,7 @@ OpenAssessment.PeerView.prototype = {
         }
 
         // Install a click handler for assessment
-        sel.find('#peer-assessment--001__assessment__submit').click(
+        sel.find('.peer-assessment--001__assessment__submit').click(
             function(eventObject) {
                 // Override default form submission
                 eventObject.preventDefault();
@@ -131,7 +133,7 @@ OpenAssessment.PeerView.prototype = {
         sel.find('.action--continue--grading').click(
             function(eventObject) {
                 eventObject.preventDefault();
-                view.loadContinuedAssessment();
+                view.loadContinuedAssessment(view.baseView.getUsageID());
             }
         );
     },
@@ -152,13 +154,7 @@ OpenAssessment.PeerView.prototype = {
      >> true
      **/
     peerSubmitEnabled: function(enabled) {
-        var button = $('#peer-assessment--001__assessment__submit', this.element);
-        if (typeof enabled === 'undefined') {
-            return !button.hasClass('is--disabled');
-        } else {
-            button.toggleClass('is--disabled', !enabled);
-            return enabled;
-        }
+        return this.baseView.buttonEnabled('.peer-assessment--001__assessment__submit', enabled);
     },
 
     /**
@@ -183,10 +179,11 @@ OpenAssessment.PeerView.prototype = {
     peerAssess: function() {
         var view = this;
         var baseView = view.baseView;
+        var usageID = baseView.getUsageID();
         this.peerAssessRequest(function() {
             baseView.unsavedWarningEnabled(false, view.UNSAVED_WARNING_KEY);
-            baseView.loadAssessmentModules();
-            baseView.scrollToTop();
+            baseView.loadAssessmentModules(usageID);
+            baseView.scrollToTop(".step--peer-assessment");
         });
     },
 
@@ -198,11 +195,12 @@ OpenAssessment.PeerView.prototype = {
         var view = this;
         var gradeView = this.baseView.gradeView;
         var baseView = view.baseView;
+        var usageID = baseView.getUsageID();
         view.peerAssessRequest(function() {
             baseView.unsavedWarningEnabled(false, view.UNSAVED_WARNING_KEY);
-            view.loadContinuedAssessment();
+            view.loadContinuedAssessment(usageID);
             gradeView.load();
-            baseView.scrollToTop();
+            baseView.scrollToTop(".step--peer-assessment");
         });
     },
 
@@ -241,6 +239,6 @@ OpenAssessment.PeerView.prototype = {
     **/
     getUUID: function() {
         var xBlockElement = $("div[data-usage-id='" + this.baseView.getUsageID() + "']");
-        return xBlockElement.find('#openassessment__peer-assessment').data('submission-uuid');
+        return xBlockElement.find('.step--peer-assessment').data('submission-uuid');
     }
 };
