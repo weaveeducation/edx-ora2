@@ -195,7 +195,8 @@ class SubmissionPage(OpenAssessmentPage):
         Returns:
             bool
         """
-        return self.q(css=".submission__custom__upload").visible
+        self.wait_for_element_visibility('.submission__custom__upload', 'Uploaded files block is presented')
+        return self.q(css=".submission--file").visible
 
 
 class AssessmentMixin(object):

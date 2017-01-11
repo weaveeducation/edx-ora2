@@ -486,17 +486,18 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
          *
          * @param {string} contentType The Content Type for the file being uploaded.
          * @param {string} filename The name of the file to be uploaded.
+         * @param {string} filenum The number of the file to be uploaded.
          * @returns {promise} A promise which resolves with a presigned upload URL from the
          * specified service used for uploading files on success, or with an error message
          * upon failure.
          */
-        getUploadUrl: function(contentType, filename) {
+        getUploadUrl: function(contentType, filename, filenum) {
             var url = this.url('upload_url');
             return $.Deferred(function(defer) {
                 $.ajax({
                     type: "POST",
                     url: url,
-                    data: JSON.stringify({contentType: contentType, filename: filename}),
+                    data: JSON.stringify({contentType: contentType, filename: filename, filenum: filenum}),
                     contentType: jsonContentType
                 }).done(function(data) {
                     if (data.success) { defer.resolve(data.url); }
@@ -510,14 +511,15 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
         /**
          * Get a download url used to download related files for the submission.
          *
+         * @param {string} filenum The number of the file to be downloaded.
          * @returns {promise} A promise which resolves with a temporary download URL for
          * retrieving documents from s3 on success, or with an error message upon failure.
          */
-        getDownloadUrl: function() {
+        getDownloadUrl: function(filenum) {
             var url = this.url('download_url');
             return $.Deferred(function(defer) {
                 $.ajax({
-                    type: "POST", url: url, data: JSON.stringify({}), contentType: jsonContentType
+                    type: "POST", url: url, data: JSON.stringify({filenum: filenum}), contentType: jsonContentType
                 }).done(function(data) {
                     if (data.success) { defer.resolve(data.url); }
                     else { defer.rejectWith(this, [data.msg]); }

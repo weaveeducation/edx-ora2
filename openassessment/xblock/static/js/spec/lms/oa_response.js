@@ -65,14 +65,14 @@ describe("OpenAssessment.ResponseView", function() {
         var errorPromise = $.Deferred(function(defer) { defer.rejectWith(this, ["ERROR"]); }).promise();
 
         this.uploadError = false;
-        this.uploadArgs = null;
+        this.uploadArgs = [];
 
         this.upload = function(url, data) {
             // Store the args we were passed so we can verify them
-            this.uploadArgs = {
+            this.uploadArgs.push({
                 url: url,
                 data: data
-            };
+            });
 
             // Return a promise indicating success or error
             return this.uploadError ? errorPromise : successPromise;
@@ -436,7 +436,8 @@ describe("OpenAssessment.ResponseView", function() {
         spyOn(view.baseView, 'toggleActionError').and.callThrough();
         var files = [{type: 'image/jpeg', size: 6000000, name: 'huge-picture.jpg', data: ''}];
         view.prepareUpload(files, 'image');
-        expect(view.baseView.toggleActionError).toHaveBeenCalledWith('upload', 'File size must be 5MB or less.');
+        expect(view.baseView.toggleActionError).toHaveBeenCalledWith('upload',
+            'huge-picture.jpg: File size must be 5MB or less.');
     });
 
     it("selects the wrong image file type", function() {
@@ -444,7 +445,7 @@ describe("OpenAssessment.ResponseView", function() {
         var files = [{type: 'image/jpg', size: 1024, name: 'picture.exe', data: ''}];
         view.prepareUpload(files, 'image');
         expect(view.baseView.toggleActionError).toHaveBeenCalledWith(
-            'upload', 'You can upload files with these file types: JPG, PNG or GIF'
+            'upload', 'picture.exe: You can upload files with these file types: JPG, PNG or GIF'
         );
     });
 
@@ -453,7 +454,7 @@ describe("OpenAssessment.ResponseView", function() {
         var files = [{type: 'application/exe', size: 1024, name: 'application.exe', data: ''}];
         view.prepareUpload(files, 'pdf-and-image');
         expect(view.baseView.toggleActionError).toHaveBeenCalledWith(
-            'upload', 'You can upload files with these file types: JPG, PNG, GIF or PDF'
+            'upload', 'application.exe: You can upload files with these file types: JPG, PNG, GIF or PDF'
         );
     });
 
@@ -462,7 +463,7 @@ describe("OpenAssessment.ResponseView", function() {
         var files = [{type: 'application/exe', size: 1024, name: 'application.exe', data: ''}];
         view.prepareUpload(files, 'custom');
         expect(view.baseView.toggleActionError).toHaveBeenCalledWith(
-            'upload', 'You can upload files with these file types: pdf, doc, docx, html'
+            'upload', 'application.exe: You can upload files with these file types: pdf, doc, docx, html'
         );
     });
 
@@ -471,31 +472,62 @@ describe("OpenAssessment.ResponseView", function() {
         view.data.FILE_TYPE_WHITE_LIST = ['exe'];
         var files = [{type: 'application/exe', size: 1024, name: 'application.exe', data: ''}];
         view.prepareUpload(files, 'custom');
-        expect(view.baseView.toggleActionError).toHaveBeenCalledWith('upload', 'File type is not allowed.');
+        expect(view.baseView.toggleActionError).toHaveBeenCalledWith('upload',
+            'application.exe: File type is not allowed.');
+    });
+
+    it("selects one small and one large file", function() {
+        spyOn(view.baseView, 'toggleActionError').and.callThrough();
+        var files = [{type: 'image/jpeg', size: 1024, name: 'small-picture.jpg', data: ''},
+                     {type: 'image/jpeg', size: 6000000, name: 'huge-picture.jpg', data: ''}];
+        view.prepareUpload(files, 'image');
+        expect(view.baseView.toggleActionError).toHaveBeenCalledWith('upload',
+            'huge-picture.jpg: File size must be 5MB or less.');
+    });
+
+    it("selects three files - one with invalid extension", function() {
+        spyOn(view.baseView, 'toggleActionError').and.callThrough();
+        var files = [{type: 'image/jpeg', size: 1024, name: 'small-picture-1.jpg', data: ''},
+                     {type: 'application/exe', size: 1024, name: 'application.exe', data: ''},
+                     {type: 'image/jpeg', size: 1024, name: 'small-picture-2.jpg', data: ''}];
+        view.prepareUpload(files, 'image');
+        expect(view.baseView.toggleActionError).toHaveBeenCalledWith('upload',
+            'application.exe: You can upload files with these file types: JPG, PNG or GIF');
     });
 
     it("uploads an image using a one-time URL", function() {
         var files = [{type: 'image/jpeg', size: 1024, name: 'picture.jpg', data: ''}];
         view.prepareUpload(files, 'image');
-        view.fileUpload();
-        expect(fileUploader.uploadArgs.url).toEqual(FAKE_URL);
-        expect(fileUploader.uploadArgs.data).toEqual(files[0]);
+        view.uploadFiles();
+        expect(fileUploader.uploadArgs[0].url).toEqual(FAKE_URL);
+        expect(fileUploader.uploadArgs[0].data).toEqual(files[0]);
+    });
+
+    it("uploads two images using a one-time URL", function() {
+        var files = [{type: 'image/jpeg', size: 1024, name: 'picture1.jpg', data: ''},
+                     {type: 'image/jpeg', size: 1024, name: 'picture2.jpg', data: ''}];
+        view.prepareUpload(files, 'image');
+        view.uploadFiles();
+        expect(fileUploader.uploadArgs[0].url).toEqual(FAKE_URL);
+        expect(fileUploader.uploadArgs[0].data).toEqual(files[0]);
+        expect(fileUploader.uploadArgs[1].url).toEqual(FAKE_URL);
+        expect(fileUploader.uploadArgs[1].data).toEqual(files[1]);
     });
 
     it("uploads a PDF using a one-time URL", function() {
         var files = [{type: 'application/pdf', size: 1024, name: 'application.pdf', data: ''}];
         view.prepareUpload(files, 'pdf-and-image');
-        view.fileUpload();
-        expect(fileUploader.uploadArgs.url).toEqual(FAKE_URL);
-        expect(fileUploader.uploadArgs.data).toEqual(files[0]);
+        view.uploadFiles();
+        expect(fileUploader.uploadArgs[0].url).toEqual(FAKE_URL);
+        expect(fileUploader.uploadArgs[0].data).toEqual(files[0]);
     });
 
     it("uploads a arbitrary type file using a one-time URL", function() {
         var files = [{type: 'text/html', size: 1024, name: 'index.html', data: ''}];
         view.prepareUpload(files, 'custom');
-        view.fileUpload();
-        expect(fileUploader.uploadArgs.url).toEqual(FAKE_URL);
-        expect(fileUploader.uploadArgs.data).toEqual(files[0]);
+        view.uploadFiles();
+        expect(fileUploader.uploadArgs[0].url).toEqual(FAKE_URL);
+        expect(fileUploader.uploadArgs[0].data).toEqual(files[0]);
     });
 
     it("displays an error if a one-time file upload URL cannot be retrieved", function() {
@@ -506,10 +538,10 @@ describe("OpenAssessment.ResponseView", function() {
         // Attempt to upload a file
         var files = [{type: 'image/jpeg', size: 1024, name: 'picture.jpg', data: ''}];
         view.prepareUpload(files, 'image');
-        view.fileUpload();
+        view.uploadFiles();
 
         // Expect an error to be displayed
-        expect(view.baseView.toggleActionError).toHaveBeenCalledWith('upload', 'ERROR');
+        expect(view.baseView.toggleActionError).toHaveBeenCalledWith('upload', 'picture.jpg: ERROR');
     });
 
     it("displays an error if a file could not be uploaded", function() {
@@ -520,9 +552,9 @@ describe("OpenAssessment.ResponseView", function() {
         // Attempt to upload a file
         var files = [{type: 'image/jpeg', size: 1024, name: 'picture.jpg', data: ''}];
         view.prepareUpload(files, 'image');
-        view.fileUpload();
+        view.uploadFiles();
 
         // Expect an error to be displayed
-        expect(view.baseView.toggleActionError).toHaveBeenCalledWith('upload', 'ERROR');
+        expect(view.baseView.toggleActionError).toHaveBeenCalledWith('upload', 'picture.jpg: ERROR');
     });
 });
