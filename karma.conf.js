@@ -35,6 +35,8 @@ module.exports = function(config) {
       'spec/*.js',
       'spec/lms/*.js',
       'spec/studio/*.js',
+      '../../../node_modules/backbone/backbone.js',
+      '../../../node_modules/backgrid/lib/backgrid.min.js',
 
       // fixtures
       {
