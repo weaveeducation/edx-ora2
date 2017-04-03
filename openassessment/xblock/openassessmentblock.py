@@ -432,6 +432,9 @@ class OpenAssessmentBlock(MessageMixin,
 
         return self._create_fragment(template, context_dict, initialize_js_func='StaffAssessmentBlock')
 
+    def author_view(self, context=None):
+        return self.student_view(context)
+
     def _create_fragment(self, template, context_dict, initialize_js_func, additional_css=None, additional_js=None):
         """
         Creates a fragment for display.
@@ -477,6 +480,10 @@ class OpenAssessmentBlock(MessageMixin,
         }
         fragment.initialize_js(initialize_js_func, js_context_dict)
         return fragment
+
+    @property
+    def has_author_view(self):
+        return True
 
     @property
     def is_admin(self):
