@@ -42,6 +42,18 @@ class Backend(BaseBackend):
             )
             raise FileUploadInternalError(ex)
 
+    def remove_file(self, key):
+        bucket_name, key_name = self._retrieve_parameters(key)
+        conn = _connect_to_s3()
+        bucket = conn.get_bucket(bucket_name)
+        s3_key = bucket.get_key(key_name)
+
+        if s3_key:
+            bucket.delete_key(s3_key)
+            return True
+        else:
+            return False
+
 
 def _connect_to_s3():
     """Connect to s3

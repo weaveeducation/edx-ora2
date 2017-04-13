@@ -442,6 +442,8 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
                 criteria: options.criteria,
                 assessments: options.assessments,
                 editor_assessments_order: options.editorAssessmentsOrder,
+                text_response: options.textResponse,
+                file_upload_response: options.fileUploadResponse,
                 file_upload_type: options.fileUploadType,
                 white_listed_file_types: options.fileTypeWhiteList,
                 allow_latex: options.latexEnabled,
@@ -525,6 +527,46 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
                     else { defer.rejectWith(this, [data.msg]); }
                 }).fail(function() {
                     defer.rejectWith(this, [gettext('Could not retrieve download url.')]);
+                });
+            }).promise();
+        },
+
+        /**
+         * Sends request to server to remove all uploaded files.
+         */
+        removeUploadedFiles: function() {
+            var url = this.url('remove_all_uploaded_files');
+            return $.Deferred(function(defer) {
+                $.ajax({
+                    type: "POST",
+                    url: url,
+                    data: JSON.stringify({}),
+                    contentType: jsonContentType
+                }).done(function(data) {
+                    if (data.success) { defer.resolve(); }
+                    else { defer.rejectWith(this, [data.msg]); }
+                }).fail(function() {
+                    defer.rejectWith(this, [gettext('Server error.')]);
+                });
+            }).promise();
+        },
+
+        /**
+         * Sends request to server to save descriptions for each uploaded file.
+         */
+        saveFilesDescriptions: function(descriptions) {
+            var url = this.url('save_files_descriptions');
+            return $.Deferred(function(defer) {
+                $.ajax({
+                    type: "POST",
+                    url: url,
+                    data: JSON.stringify({descriptions: descriptions}),
+                    contentType: jsonContentType
+                }).done(function(data) {
+                    if (data.success) { defer.resolve(); }
+                    else { defer.rejectWith(this, [data.msg]); }
+                }).fail(function() {
+                    defer.rejectWith(this, [gettext('Server error.')]);
                 });
             }).promise();
         },

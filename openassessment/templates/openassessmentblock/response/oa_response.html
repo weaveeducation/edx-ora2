@@ -64,8 +64,7 @@
                                     </div>
                                 </article>
 
-
-
+                                {% if text_response %}
                                 <div class="field field--textarea submission__answer__part__text">
                                     <div class="submission__answer__part__text">
                                         <h5 id="submission__answer__part__text__title__{{ forloop.counter }}__{{ xblock_id }}"
@@ -82,27 +81,32 @@
                                         maxlength="100000"
                                     >{{ part.text }}</textarea>
                                 </div>
+                                {% endif %}
                             </li>
                         {% endfor %}
                         {% if file_upload_type %}
                         <li class="field">
                             <div class="upload__error">
                                 <div class="message message--inline message--error message--error-server" tabindex="-1">
-                                    <h5 class="message__title">{% trans "We could not upload this file" %}</h5>
+                                    <h5 class="message__title">{% trans "We could not upload files" %}</h5>
                                     <div class="message__content"></div>
                                 </div>
                             </div>
                             <label class="sr" for="submission_answer_upload_{{ xblock_id }}">{% trans "Select a file to upload for this submission." %}</label>
                             <input type="file" class="submission__answer__upload file--upload" id="submission_answer_upload_{{ xblock_id }}" multiple="">
-                            <button type="submit" class="file__upload action action--upload" disabled>{% trans "Upload your file" %}</button>
+                            <div class="files__descriptions"></div>
+                            <button type="submit" class="file__upload action action--upload" disabled>{% trans "Upload files" %}</button>
                         </li>
                         {% endif %}
 
+                        <li class="field">
                         {% include "openassessmentblock/oa_uploaded_file.html" with file_upload_type=file_upload_type file_urls=file_urls class_prefix="submission__answer"%}
+                        </li>
                     </ol>
 
                     <span class="tip" id="submission__answer__tip__{{ xblock_id }}">{% trans "You may continue to work on your response until you submit it." %}</span>
 
+                    {% if text_response %}
                     <div class="response__submission__actions">
                         <div class="message message--inline message--error message--error-server" tabindex="-1">
                             <h5 class="message__title">{% trans "We could not save your progress" %}</h5>
@@ -141,6 +145,7 @@
                             {% endif %}
                         </ul>
                     </div>
+                    {% endif %}
                 </form>
             </div>
 
@@ -153,6 +158,8 @@
                 <ul class="list list--actions">
                     <li class="list--actions__item">
                         <button type="submit" class="action action--submit step--response__submit"
+                                text_response="{{text_response}}"
+                                file_upload_response="{{file_upload_response}}"
                                 {{submit_enabled|yesno:",disabled" }}>
                             {% trans "Submit your response and move to the next step" %}
                         </button>
