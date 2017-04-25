@@ -469,9 +469,29 @@ class OpenAssessmentBlock(MessageMixin,
         return self._create_fragment(template, context_dict, initialize_js_func='StaffAssessmentBlock')
 
     def author_view(self, context=None):
-        return self.student_view(context)
+        # should be similar as student_view
 
-    def _create_fragment(self, template, context_dict, initialize_js_func, additional_css=None, additional_js=None):
+        try:
+            self.update_workflow_status()
+        except AssessmentWorkflowError:
+            # Log the exception, but continue loading the page
+            logger.exception('An error occurred while updating the workflow on page load.')
+
+        ui_models = self._create_ui_models()
+        # All data we intend to pass to the front end.
+        context_dict = {
+            "title": self.title,
+            "prompts": self.prompts,
+            "rubric_assessments": ui_models,
+            "show_staff_area": self.is_course_staff and not self.in_studio_preview,
+        }
+        template = get_template("openassessmentblock/oa_base.html")
+
+        return self._create_fragment(template, context_dict, initialize_js_func='OpenAssessmentBlock',
+                                     min_postfix='author-view')
+
+    def _create_fragment(self, template, context_dict, initialize_js_func,
+                         additional_css=None, additional_js=None, min_postfix=''):
         """
         Creates a fragment for display.
 
@@ -507,7 +527,10 @@ class OpenAssessmentBlock(MessageMixin,
             fragment.add_css(load(css_url))
 
             # minified additional_js should be already included in 'make javascript'
-            fragment.add_javascript(load("static/js/openassessment-lms.min.js"))
+            if min_postfix:
+                fragment.add_javascript(load("static/js/openassessment-lms-%s.min.js" % min_postfix))
+            else:
+                fragment.add_javascript(load("static/js/openassessment-lms.min.js"))
         js_context_dict = {
             "ALLOWED_IMAGE_MIME_TYPES": self.ALLOWED_IMAGE_MIME_TYPES,
             "ALLOWED_FILE_MIME_TYPES": self.ALLOWED_FILE_MIME_TYPES,
