@@ -8,6 +8,7 @@ import dateutil.parser
 import defusedxml.ElementTree as safe_etree
 from data_conversion import update_assessments_format
 from defaults import DEFAULT_RUBRIC_FEEDBACK_TEXT
+from xblock.core import XML_NAMESPACES
 
 
 class UpdateFromXmlError(Exception):
@@ -734,6 +735,12 @@ def serialize_content_to_xml(oa_block, root):
     # Rubric
     rubric_root = etree.SubElement(root, 'rubric')
     serialize_rubric(rubric_root, oa_block)
+
+    for aside in oa_block.runtime.get_asides(oa_block):
+        if aside.needs_serialization():
+            aside_node = etree.Element("unknown_root", nsmap=XML_NAMESPACES)
+            aside.add_xml_to_node(aside_node)
+            root.append(aside_node)
 
 
 def serialize_content(oa_block):
