@@ -282,6 +282,68 @@ OpenAssessment.StudioView.prototype = {
     }
 };
 
+function tinymceCfg() {
+    var CUSTOM_FONTS, STANDARD_FONTS, _getFonts;
+
+    CUSTOM_FONTS = "Default='Open Sans', Verdana, Arial, Helvetica, sans-serif;";
+    STANDARD_FONTS = "Andale Mono=andale mono,times;"
+        + "Arial=arial,helvetica,sans-serif;"
+        + "Arial Black=arial black,avant garde;"
+        + "Book Antiqua=book antiqua,palatino;"
+        + "Comic Sans MS=comic sans ms,sans-serif;"
+        + "Courier New=courier new,courier;"
+        + "Georgia=georgia,palatino;"
+        + "Helvetica=helvetica;"
+        + "Impact=impact,chicago;"
+        + "Symbol=symbol;"
+        + "Tahoma=tahoma,arial,helvetica,sans-serif;"
+        + "Terminal=terminal,monaco;"
+        + "Times New Roman=times new roman,times;"
+        + "Trebuchet MS=trebuchet ms,geneva;"
+        + "Verdana=verdana,geneva;"
+        + "Webdings=webdings;"
+        + "Wingdings=wingdings,zapf dingbats";
+
+    _getFonts = function() {
+        return CUSTOM_FONTS + STANDARD_FONTS;
+    };
+
+    return {
+        height : "300",
+        font_formats: _getFonts(),
+        theme : "modern",
+        skin: 'studio-tmce4',
+        schema: "html5",
+        convert_urls : false,
+        directionality: $(".wrapper-view, .window-wrap").prop('dir'),
+        formats : {
+            code: {inline: 'code'}
+        },
+        visual: false,
+        plugins: "textcolor, link, image, codemirror, media",
+        codemirror: {
+            path: "" + baseUrl + "/js/vendor"
+        },
+        image_advtab: true,
+        toolbar: "formatselect | fontselect | bold italic underline forecolor | bullist numlist outdent indent blockquote | link unlink image media | code",
+        block_formats: interpolate("%(paragraph)s=p;%(preformatted)s=pre;%(heading3)s=h3;%(heading4)s=h4;%(heading5)s=h5;%(heading6)s=h6", {
+            paragraph: gettext("Paragraph"),
+            preformatted: gettext("Preformatted"),
+            heading3: gettext("Heading 3"),
+            heading4: gettext("Heading 4"),
+            heading5: gettext("Heading 5"),
+            heading6: gettext("Heading 6")
+          }, true),
+        menubar: false,
+        statusbar: false,
+        valid_children : "+body[style]",
+        valid_elements: "*[*]",
+        extended_valid_elements: "*[*]",
+        invalid_elements: "",
+        browser_spellcheck: true
+    }
+}
+
 /* XBlock entry point for Studio view */
 /* jshint unused:false */
 function OpenAssessmentEditor(runtime, element, data) {

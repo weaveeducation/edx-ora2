@@ -13,6 +13,8 @@ OpenAssessment.EditPromptsView = function(element, notifier) {
     this.editorElement = $(this.element).closest("#openassessment-editor");
     this.addRemoveEnabled = this.editorElement.attr('data-is-released') !== 'true';
 
+    var addWysiwyg = window.tinyMCE !== undefined;
+
     this.promptsContainer = new OpenAssessment.Container(
         OpenAssessment.Prompt, {
             containerElement: $("#openassessment_prompts_list", this.element).get(0),
@@ -21,7 +23,10 @@ OpenAssessment.EditPromptsView = function(element, notifier) {
             removeButtonClass: "openassessment_prompt_remove_button",
             containerItemClass: "openassessment_prompt",
             notifier: notifier,
-            addRemoveEnabled: this.addRemoveEnabled
+            addRemoveEnabled: this.addRemoveEnabled,
+            containerItemsKwargs: {
+                addWysiwyg: addWysiwyg
+            }
         }
     );
     this.promptsContainer.addEventListeners();

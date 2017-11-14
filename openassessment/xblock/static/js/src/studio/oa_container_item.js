@@ -75,9 +75,17 @@ OpenAssessment.ItemUtilities = {
  Returns:
  OpenAssessment.Prompt
  **/
-OpenAssessment.Prompt = function(element, notifier) {
+OpenAssessment.Prompt = function(element, notifier, kwargs) {
     this.element = element;
     this.notifier = notifier;
+    this.kwargs = kwargs || {addWysiwyg: false};
+
+    var elId = $(element).find('textarea').attr('id');
+
+    if (kwargs.addWysiwyg && !elId) {
+        var newElId = Date.now() + '-textarea-' + (Math.random() * 100);
+        $(element).find('textarea').attr('id', newElId).tinymce(tinymceCfg());
+    }
 };
 
 OpenAssessment.Prompt.prototype = {
@@ -109,7 +117,17 @@ OpenAssessment.Prompt.prototype = {
      **/
     description: function(text) {
         var sel = $('.openassessment_prompt_description', this.element);
-        return OpenAssessment.Fields.stringField(sel, text);
+        if (this.kwargs.addWysiwyg) {
+            var tinyEl = window.tinyMCE.get(sel.attr('id'));
+            if (text) {
+                tinyEl.setContent(text);
+            } else {
+                return tinyEl.getContent();
+            }
+        } else {
+            return OpenAssessment.Fields.stringField(sel, text);
+        }
+
     },
 
     addEventListeners: function() {},
