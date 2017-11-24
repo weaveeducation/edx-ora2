@@ -566,10 +566,6 @@ class OpenAssessmentBlock(MessageMixin,
         return True
 
     @property
-    def has_author_view(self):
-        return True
-
-    @property
     def is_admin(self):
         """
         Check whether the user has global staff permissions.

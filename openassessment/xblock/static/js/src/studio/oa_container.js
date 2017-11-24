@@ -67,12 +67,14 @@ OpenAssessment.Container = function(ContainerItem, kwargs) {
     this.notifier = kwargs.notifier;
     this.addRemoveEnabled = (typeof kwargs.addRemoveEnabled === 'undefined') || kwargs.addRemoveEnabled;
 
+    var containerItemsKwargs = kwargs.containerItemsKwargs || {};
+
     // Since every container item should be instantiated with
     // the notifier we were given, create a helper method
     // that does this automatically.
     var container = this;
     this.createContainerItem = function(element) {
-        return new ContainerItem(element, container.notifier);
+        return new ContainerItem(element, container.notifier, containerItemsKwargs);
     };
 };
 
