@@ -558,9 +558,6 @@ class OpenAssessmentBlock(MessageMixin,
         fragment.initialize_js(initialize_js_func, js_context_dict)
         return fragment
 
-    def author_view(self, context=None):
-        return self.student_view(context)
-
     @property
     def has_author_view(self):
         return True
