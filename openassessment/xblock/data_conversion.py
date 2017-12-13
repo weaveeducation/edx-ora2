@@ -121,6 +121,13 @@ def create_prompts_list(prompt_or_serialized_prompts):
                 'description': prompt_or_serialized_prompts,
             }
         ]
+
+    for idx, p_dict in enumerate(prompts):
+        dscr = p_dict['description'].strip()
+        prompts[idx]['use_html'] = False
+        if len(dscr) > 0 and dscr[0] == '<':
+            prompts[idx]['use_html'] = True
+
     return prompts
 
 

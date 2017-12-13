@@ -320,12 +320,12 @@ function tinymceCfg() {
             code: {inline: 'code'}
         },
         visual: false,
-        plugins: "textcolor, link, image, codemirror, media",
+        plugins: "textcolor, link, image, media",
         codemirror: {
             path: "" + baseUrl + "/js/vendor"
         },
         image_advtab: true,
-        toolbar: "formatselect | fontselect | bold italic underline forecolor | bullist numlist outdent indent blockquote | link unlink image media | code",
+        toolbar: "formatselect | fontselect | bold italic underline forecolor | bullist numlist outdent indent blockquote | link unlink image media",
         block_formats: interpolate("%(paragraph)s=p;%(preformatted)s=pre;%(heading3)s=h3;%(heading4)s=h4;%(heading5)s=h5;%(heading6)s=h6", {
             paragraph: gettext("Paragraph"),
             preformatted: gettext("Preformatted"),
