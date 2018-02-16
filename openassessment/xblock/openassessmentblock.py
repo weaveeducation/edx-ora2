@@ -1067,7 +1067,8 @@ class OpenAssessmentBlock(MessageMixin,
 
             # All assessment parts are associated with criteria
             criterion_dict = {
-                "name": part["criterion"]["label"] if part["criterion"]["label"] else part["criterion"]["name"],
+                "name": part["criterion"]["label"] if"label" in part["criterion"] \
+                                                     and part["criterion"]["label"] else part["criterion"]["name"],
                 "points_possible": part["criterion"]["points_possible"]
             }
 
