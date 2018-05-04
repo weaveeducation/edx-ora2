@@ -180,6 +180,12 @@ class OpenAssessmentBlock(MessageMixin,
         help="The prompts to display to a student."
     )
 
+    prompts_type = String(
+        default='text',
+        scope=Scope.content,
+        help="The type of prompt. html or text"
+    )
+
     rubric_criteria = List(
         default=DEFAULT_RUBRIC_CRITERIA,
         scope=Scope.content,
@@ -736,6 +742,7 @@ class OpenAssessmentBlock(MessageMixin,
         block.submission_due = config['submission_due']
         block.title = config['title']
         block.prompts = config['prompts']
+        block.prompts_type = config['prompts_type']
         block.text_response = config['text_response']
         block.file_upload_response = config['file_upload_response']
         block.allow_file_upload = config['allow_file_upload']
