@@ -26,7 +26,8 @@ update-npm-requirements:
 
 javascript: update-npm-requirements
 	node_modules/.bin/uglifyjs $(STATIC_JS)/src/oa_shared.js $(STATIC_JS)/src/*.js $(STATIC_JS)/src/lms/*.js $(STATIC_JS)/lib/backgrid/backgrid.min.js -c warnings=false > "$(STATIC_JS)/openassessment-lms.min.js"
-	node_modules/.bin/uglifyjs $(STATIC_JS)/src/oa_shared.js $(STATIC_JS)/src/*.js $(STATIC_JS)/src/studio/*.js $(STATIC_JS)/lib/backgrid/backgrid.min.js -c warnings=false > "$(STATIC_JS)/openassessment-studio.min.js"
+	node_modules/.bin/uglifyjs $(STATIC_JS)/src/oa_shared.js $(STATIC_JS)/src/*.js $(STATIC_JS)/src/lms/*.js -c warnings=false > "$(STATIC_JS)/openassessment-lms-author-view.min.js"
+	node_modules/.bin/uglifyjs $(STATIC_JS)/src/oa_shared.js $(STATIC_JS)/src/*.js $(STATIC_JS)/src/studio/*.js -c warnings=false > "$(STATIC_JS)/openassessment-studio.min.js"
 
 sass:
 	python scripts/compile_sass.py

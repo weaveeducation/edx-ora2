@@ -13,6 +13,8 @@ import pytz
 from openassessment.xblock.data_conversion import update_assessments_format
 from openassessment.xblock.lms_mixin import GroupAccessDict
 
+from xblock.core import XML_NAMESPACES
+
 log = logging.getLogger(__name__)
 
 
@@ -743,6 +745,12 @@ def serialize_content_to_xml(oa_block, root):
     # Rubric
     rubric_root = etree.SubElement(root, 'rubric')
     serialize_rubric(rubric_root, oa_block)
+
+    for aside in oa_block.runtime.get_asides(oa_block):
+        if aside.needs_serialization():
+            aside_node = etree.Element("unknown_root", nsmap=XML_NAMESPACES)
+            aside.add_xml_to_node(aside_node)
+            root.append(aside_node)
 
 
 def serialize_content(oa_block):
