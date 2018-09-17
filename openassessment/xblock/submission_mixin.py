@@ -113,6 +113,23 @@ class SubmissionMixin(object):
                     student_sub_data,
                     saved_files_descriptions
                 )
+
+                if len(self.rubric_criteria) == 0 and not self.in_studio_preview:
+                    api.set_score(submission["uuid"], self.max_score(), self.max_score())
+
+                    try:
+                        from completion.models import BlockCompletion
+                        user_service = self.runtime.service(self, 'user')
+                        if user_service and hasattr(user_service, '_django_user'):
+                            BlockCompletion.objects.submit_completion(
+                                user=user_service._django_user,
+                                course_key=self.location.course_key,
+                                block_key=self.location,
+                                completion=1.0,
+                            )
+                    except ImportError:
+                        pass
+
             except api.SubmissionRequestError as err:
 
                 # Handle the case of an answer that's too long as a special case,
@@ -271,6 +288,7 @@ class SubmissionMixin(object):
                 "created_at": submission["created_at"],
                 "submitted_at": submission["submitted_at"],
                 "answer": submission["answer"],
+                "rubric_count": len(self.rubric_criteria)
             }
         )
 
@@ -499,6 +517,7 @@ class SubmissionMixin(object):
             "text_response": self.text_response,
             "file_upload_response": self.file_upload_response,
             "prompts_type": self.prompts_type,
+            "rubric_count": len(self.rubric_criteria)
         }
 
         # Due dates can default to the distant future, in which case

@@ -170,7 +170,11 @@
                                 text_response="{{text_response}}"
                                 file_upload_response="{{file_upload_response}}"
                                 {{submit_enabled|yesno:",disabled" }}>
+                            {% if rubric_count == 0 %}
+                            {% trans "Submit your response" %}
+                            {% else %}
                             {% trans "Submit your response and move to the next step" %}
+                            {% endif %}
                         </button>
                     </li>
                 </ul>

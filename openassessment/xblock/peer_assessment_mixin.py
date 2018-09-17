@@ -57,6 +57,7 @@ class PeerAssessmentMixin(object):
         """
         # Import is placed here to avoid model import at project startup.
         from openassessment.assessment.api import peer as peer_api
+        from submissions import api as submission_api
         if self.submission_uuid is None:
             return {
                 'success': False, 'msg': self._('You must submit a response before you can perform a peer assessment.')
@@ -89,6 +90,9 @@ class PeerAssessmentMixin(object):
                     create_rubric_dict(self.prompts, self.rubric_criteria_with_labels),
                     assessment_ui_model['must_be_graded_by']
                 )
+                submission_dict = submission_api.get_submission(assessment['submission_uuid'])
+                if 'answer' in submission_dict:
+                    assessment['answer'] = submission_dict['answer'].copy()
 
                 # Emit analytics event...
                 self.publish_assessment_event("openassessmentblock.peer_assess", assessment)

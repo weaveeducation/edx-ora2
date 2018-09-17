@@ -140,7 +140,7 @@ class StaffWorkflow(models.Model):
         """
         Assign assessment to workflow, and mark the grading as complete.
         """
-        self.assessment = assessment.id
+        self.assessment = assessment.id if assessment else None
         self.scorer_id = scorer_id
         self.grading_completed_at = now()
         self.save()

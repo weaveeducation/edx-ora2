@@ -45,6 +45,14 @@
 
         this._columns = [
             {
+                name: 'chapter_name', label: gettext("Section"), label_summary: gettext("Section"),
+                cell: "string", num: false, editable: false
+            },
+            {
+                name: 'seq_name', label: gettext("Subsection"), label_summary: gettext("Subsection"),
+                cell: "string", num: false, editable: false
+            },
+            {
                 name: 'parent_name', label: gettext("Unit Name"), label_summary: gettext("Units"),
                 cell: "string", num: false, editable: false
             },

@@ -94,6 +94,8 @@ class LmsCompatibilityMixin(object):
         10/10 score was earned in the past and the problem has changed since
         then.
         """
+        if len(self.rubric_criteria) == 0:
+            return 1
         return sum(
             max(option["points"] for option in criterion["options"])
             if len(criterion["options"]) > 0 else 0

@@ -247,6 +247,10 @@ class OpenAssessmentBlock(MessageMixin,
         return self._serialize_opaque_key(self.xmodule_runtime.course_id)  # pylint:disable=E1101
 
     @property
+    def has_author_view(self):
+        return True
+
+    @property
     def text_response(self):
         """
         Backward compatibility for existing blocks that were created without text_response
@@ -415,11 +419,36 @@ class OpenAssessmentBlock(MessageMixin,
             "prompts": self.prompts,
             "prompts_type": self.prompts_type,
             "rubric_assessments": ui_models,
+            "rubric_count": len(self.rubric_criteria),
             "show_staff_area": self.is_course_staff and not self.in_studio_preview,
         }
         template = get_template("openassessmentblock/oa_base.html")
 
         return self._create_fragment(template, context_dict, initialize_js_func='OpenAssessmentBlock')
+
+    def author_view(self, context=None):
+        # should be similar as student_view
+
+        try:
+            self.update_workflow_status()
+        except AssessmentWorkflowError:
+            # Log the exception, but continue loading the page
+            logger.exception('An error occurred while updating the workflow on page load.')
+
+        ui_models = self._create_ui_models()
+        # All data we intend to pass to the front end.
+        context_dict = {
+            "title": self.title,
+            "prompts": self.prompts,
+            "prompts_type": self.prompts_type,
+            "rubric_assessments": ui_models,
+            "rubric_count": len(self.rubric_criteria),
+            "show_staff_area": self.is_course_staff and not self.in_studio_preview,
+        }
+        template = get_template("openassessmentblock/oa_base.html")
+
+        return self._create_fragment(template, context_dict, initialize_js_func='OpenAssessmentBlock',
+                                     min_postfix='author-view')
 
     def ora_blocks_listing_view(self, context=None):
         """This view is used in the Open Response Assessment tab in the LMS Instructor Dashboard
@@ -489,7 +518,8 @@ class OpenAssessmentBlock(MessageMixin,
 
         return self._create_fragment(template, context_dict, initialize_js_func='StaffAssessmentBlock')
 
-    def _create_fragment(self, template, context_dict, initialize_js_func, additional_css=None, additional_js=None):
+    def _create_fragment(self, template, context_dict, initialize_js_func,
+                         additional_css=None, additional_js=None, min_postfix=''):
         """
         Creates a fragment for display.
 
@@ -524,7 +554,10 @@ class OpenAssessmentBlock(MessageMixin,
             fragment.add_css(load(css_url))
 
             # minified additional_js should be already included in 'make javascript'
-            fragment.add_javascript(load("static/js/openassessment-lms.min.js"))
+            if min_postfix:
+                fragment.add_javascript(load("static/js/openassessment-lms-%s.min.js" % min_postfix))
+            else:
+                fragment.add_javascript(load("static/js/openassessment-lms.min.js"))
         js_context_dict = {
             "ALLOWED_IMAGE_MIME_TYPES": self.ALLOWED_IMAGE_MIME_TYPES,
             "ALLOWED_FILE_MIME_TYPES": self.ALLOWED_FILE_MIME_TYPES,
@@ -597,19 +630,20 @@ class OpenAssessmentBlock(MessageMixin,
 
         """
         ui_models = [UI_MODELS["submission"]]
-        staff_assessment_required = False
-        for assessment in self.valid_assessments:
-            if assessment["name"] == "staff-assessment":
-                if not assessment["required"]:
-                    continue
-                else:
-                    staff_assessment_required = True
-            ui_model = UI_MODELS.get(assessment["name"])
-            if ui_model:
-                ui_models.append(dict(assessment, **ui_model))
+        if len(self.rubric_criteria) > 0:
+            staff_assessment_required = False
+            for assessment in self.valid_assessments:
+                if assessment["name"] == "staff-assessment":
+                    if not assessment["required"]:
+                        continue
+                    else:
+                        staff_assessment_required = True
+                ui_model = UI_MODELS.get(assessment["name"])
+                if ui_model:
+                    ui_models.append(dict(assessment, **ui_model))
 
-        if not staff_assessment_required and self.staff_assessment_exists(self.submission_uuid):
-            ui_models.append(UI_MODELS["staff-assessment"])
+            if not staff_assessment_required and self.staff_assessment_exists(self.submission_uuid):
+                ui_models.append(UI_MODELS["staff-assessment"])
 
         ui_models.append(UI_MODELS["grade"])
 
@@ -1030,13 +1064,14 @@ class OpenAssessmentBlock(MessageMixin,
             option_dict = None
             if part["option"] is not None:
                 option_dict = {
-                    "name": part["option"]["name"],
+                    "name": part["option"]["label"] if part["option"]["name"].isdigit() else part["option"]["name"],
                     "points": part["option"]["points"],
                 }
 
             # All assessment parts are associated with criteria
             criterion_dict = {
-                "name": part["criterion"]["name"],
+                "name": part["criterion"]["label"] if "label" in part["criterion"] \
+                                                      and part["criterion"]["label"] else part["criterion"]["name"],
                 "points_possible": part["criterion"]["points_possible"]
             }
 
@@ -1055,7 +1090,9 @@ class OpenAssessmentBlock(MessageMixin,
             "score_type": assessment["score_type"],
             "scored_at": assessment["scored_at"],
             "submission_uuid": assessment["submission_uuid"],
-            "parts": parts_list
+            "parts": parts_list,
+            "prompts": self.prompts,
+            "answer": assessment.get("answer", {})
         }
 
         for key in kwargs:
