@@ -218,7 +218,7 @@ OpenAssessment.EditRubricView.prototype = {
      **/
     validate: function() {
         var criteria = this.getAllCriteria();
-        var isValid = criteria.length > 0;
+        /*var isValid = criteria.length > 0;
         if (!isValid) {
             this.criterionAddButton
                 .addClass("openassessment_highlighted_field")
@@ -226,7 +226,8 @@ OpenAssessment.EditRubricView.prototype = {
                         $(this).removeClass("openassessment_highlighted_field");
                     }
                 );
-        }
+        }*/
+        var isValid = true;
 
         $.each(criteria, function() {
             isValid = (this.validate() && isValid);

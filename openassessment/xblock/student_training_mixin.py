@@ -49,6 +49,9 @@ class StudentTrainingMixin(object):
         if "student-training" not in self.assessment_steps:
             return Response(u"")
 
+        if len(self.rubric_criteria) == 0:
+            return Response(u"")
+
         try:
             path, context = self.training_path_and_context()
         except:  # pylint:disable=W0702

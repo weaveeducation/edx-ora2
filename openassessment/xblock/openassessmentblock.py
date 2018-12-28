@@ -419,6 +419,7 @@ class OpenAssessmentBlock(MessageMixin,
             "prompts": self.prompts,
             "prompts_type": self.prompts_type,
             "rubric_assessments": ui_models,
+            "rubric_count": len(self.rubric_criteria),
             "show_staff_area": self.is_course_staff and not self.in_studio_preview,
         }
         template = get_template("openassessmentblock/oa_base.html")
@@ -441,6 +442,7 @@ class OpenAssessmentBlock(MessageMixin,
             "prompts": self.prompts,
             "prompts_type": self.prompts_type,
             "rubric_assessments": ui_models,
+            "rubric_count": len(self.rubric_criteria),
             "show_staff_area": self.is_course_staff and not self.in_studio_preview,
         }
         template = get_template("openassessmentblock/oa_base.html")
@@ -628,19 +630,20 @@ class OpenAssessmentBlock(MessageMixin,
 
         """
         ui_models = [UI_MODELS["submission"]]
-        staff_assessment_required = False
-        for assessment in self.valid_assessments:
-            if assessment["name"] == "staff-assessment":
-                if not assessment["required"]:
-                    continue
-                else:
-                    staff_assessment_required = True
-            ui_model = UI_MODELS.get(assessment["name"])
-            if ui_model:
-                ui_models.append(dict(assessment, **ui_model))
+        if len(self.rubric_criteria) > 0:
+            staff_assessment_required = False
+            for assessment in self.valid_assessments:
+                if assessment["name"] == "staff-assessment":
+                    if not assessment["required"]:
+                        continue
+                    else:
+                        staff_assessment_required = True
+                ui_model = UI_MODELS.get(assessment["name"])
+                if ui_model:
+                    ui_models.append(dict(assessment, **ui_model))
 
-        if not staff_assessment_required and self.staff_assessment_exists(self.submission_uuid):
-            ui_models.append(UI_MODELS["staff-assessment"])
+            if not staff_assessment_required and self.staff_assessment_exists(self.submission_uuid):
+                ui_models.append(UI_MODELS["staff-assessment"])
 
         ui_models.append(UI_MODELS["grade"])
 

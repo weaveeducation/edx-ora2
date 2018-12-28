@@ -29,6 +29,9 @@
         <div class="step__message message message--complete">
             <h5 class="message__title">{% trans "Status" %}</h5>
             <div class="message__content">
+                {% if rubric_count == 0 %}
+                {% trans "Your response has been submitted." %}
+                {% else %}
                 {% trans "Your response has been submitted. You will receive your grade after all steps are complete and your response is fully assessed." %}
                 {% if peer_incomplete and self_incomplete %}
                     {% blocktrans with peer_start_tag='<a data-behavior="ui-scroll" href="#openassessment__peer-assessment__'|add:xblock_id|add:'">'|safe self_start_tag='<a data-behavior="ui-scroll" href="#openassessment__self-assessment__'|add:xblock_id|add:'">'|safe end_tag='</a>'|safe %}
@@ -42,6 +45,7 @@
                     {% blocktrans with start_tag='<a data-behavior="ui-scroll" href="#openassessment__self-assessment__'|add:xblock_id|add:'">'|safe end_tag='</a>'|safe%}
                         You still need to complete the {{ start_tag }}self assessment{{ end_tag }} step.
                     {% endblocktrans %}
+                {% endif %}
                 {% endif %}
             </div>
         </div>
