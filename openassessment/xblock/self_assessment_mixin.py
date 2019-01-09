@@ -131,6 +131,7 @@ class SelfAssessmentMixin(object):
             Dict with keys "success" (bool) indicating success/failure
             and "msg" (unicode) containing additional information if an error occurs.
         """
+        from submissions import api as submission_api
 
         if self.submission_uuid is None:
             return {
@@ -147,6 +148,10 @@ class SelfAssessmentMixin(object):
                 data['overall_feedback'],
                 create_rubric_dict(self.prompts, self.rubric_criteria_with_labels)
             )
+            submission_dict = submission_api.get_submission(self.submission_uuid)
+            if 'answer' in submission_dict:
+                assessment['answer'] = submission_dict['answer'].copy()
+
             self.publish_assessment_event("openassessmentblock.self_assess", assessment)
 
             # After we've created the self-assessment, we need to update the workflow.

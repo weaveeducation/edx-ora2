@@ -34,6 +34,8 @@ class StaffAssessmentMixin(object):
         """
         Create a staff assessment from a staff submission.
         """
+        from submissions import api as submission_api
+
         if 'submission_uuid' not in data:
             return {
                 'success': False, 'msg': self._(u"The submission ID of the submission being assessed was not found.")
@@ -50,6 +52,11 @@ class StaffAssessmentMixin(object):
                     create_rubric_dict(self.prompts, self.rubric_criteria_with_labels)
                 )
                 assess_type = data.get('assess_type', 'regrade')
+
+                submission_dict = submission_api.get_submission(data['submission_uuid'])
+                if 'answer' in submission_dict:
+                    assessment['answer'] = submission_dict['answer'].copy()
+
                 self.publish_assessment_event("openassessmentblock.staff_assess", assessment, type=assess_type)
                 workflow_api.update_from_assessments(
                     assessment["submission_uuid"],

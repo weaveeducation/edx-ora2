@@ -1091,7 +1091,8 @@ class OpenAssessmentBlock(MessageMixin,
             "scored_at": assessment["scored_at"],
             "submission_uuid": assessment["submission_uuid"],
             "parts": parts_list,
-            "prompts": self.prompts
+            "prompts": self.prompts,
+            "answer": assessment.get("answer", {})
         }
 
         for key in kwargs:
