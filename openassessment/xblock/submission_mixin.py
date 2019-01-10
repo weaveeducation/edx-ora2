@@ -115,6 +115,8 @@ class SubmissionMixin(object):
                 )
 
                 if len(self.rubric_criteria) == 0 and not self.in_studio_preview:
+                    api.set_score(submission["uuid"], self.max_score(), self.max_score())
+
                     try:
                         from completion.models import BlockCompletion
                         user_service = self.runtime.service(self, 'user')
