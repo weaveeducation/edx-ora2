@@ -559,6 +559,11 @@ OpenAssessment.RubricCriterion.prototype = {
         // Set the criterion name in the new rubric element.
         $(this.element).attr("data-criterion", name);
         $(".openassessment_criterion_name", this.element).attr("value", name);
+
+        var mainBlock = this.element.parent().parent().parent();
+
+        $('#openassessment_step_select_description', mainBlock).show();
+        $('#openassessment_assessment_module_settings_editors', mainBlock).show();
     },
 
     /**
@@ -568,6 +573,13 @@ OpenAssessment.RubricCriterion.prototype = {
     removeHandler: function() {
         var criterionName = $(this.element).data('criterion');
         this.notifier.notificationFired("criterionRemove", {'criterionName': criterionName});
+
+        var mainBlock = this.element.parent().parent().parent();
+        var oraCriterionsNum = $('.openassessment_criterion', this.element.parent()).length;
+        if (oraCriterionsNum === 1) {
+            $('#openassessment_step_select_description', mainBlock).hide();
+            $('#openassessment_assessment_module_settings_editors', mainBlock).hide();
+        }
     },
 
     /**
