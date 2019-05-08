@@ -288,7 +288,8 @@ class SubmissionMixin(object):
                 "created_at": submission["created_at"],
                 "submitted_at": submission["submitted_at"],
                 "answer": submission["answer"],
-                "rubric_count": len(self.rubric_criteria)
+                "rubric_count": len(self.rubric_criteria),
+                "prompts": self.prompts
             }
         )
 
