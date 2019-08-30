@@ -274,7 +274,7 @@
             var $staffArea = $('.openassessment__staff-area', this.element);
             view.server.studentStatuses().done(function(studentsLst) {
                 var html = '<table class="staff-info__status__table">';
-                html += '<thead><tr><th>User</th><th>Step</th><th></th></tr></thead>';
+                html += '<thead><tr><th>Email</th><th>Username</th><th>Step</th><th></th></tr></thead>';
                 html += '<tbody>';
                 $.each(studentsLst, function(idx, val) {
                     var style = '';
@@ -282,6 +282,7 @@
                         style = "font-weight:700; color: #2dd52d;";
                     }
                     html += '<tr><td style="' + style + '">' + val.email + '</td>';
+                    html += '<td style="' + style + '">' + val.username + '</td>';
                     html += '<td style="' + style + '">' + val.status + '</td>';
                     html += '<td><a href="javascript: void(0);" data-status="' + val.status + '" data-email="' + val.email + '" style="color: #31acee;" class="submit-assessment">Manage</a></td></tr>';
                 });
