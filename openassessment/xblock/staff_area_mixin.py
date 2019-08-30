@@ -10,6 +10,7 @@ from xblock.core import XBlock
 
 from openassessment.assessment.errors import PeerAssessmentInternalError
 from openassessment.workflow.errors import AssessmentWorkflowError, AssessmentWorkflowInternalError
+from openassessment.workflow.models import AssessmentWorkflow
 from openassessment.xblock.data_conversion import create_submission_dict
 from openassessment.xblock.resolve_dates import DISTANT_FUTURE, DISTANT_PAST
 
@@ -242,6 +243,44 @@ class StaffAreaMixin(object):
 
         except PeerAssessmentInternalError:
             return self.render_error(self._(u"Error getting staff grade ungraded and checked out counts."))
+
+    @XBlock.json_handler
+    @require_course_staff("STUDENT_GRADE")
+    def get_student_statuses(self, data, suffix=''):
+        from submissions import api as submission_api
+        from student.models import AnonymousUserId
+
+        data = submission_api.get_all_submissions(self.location.course_key, self.location, 'openassessment')
+        result = {}
+        uuids = []
+        student_ids = []
+
+        for item in data:
+            result[item['uuid']] = {'student_id': item['student_id']}
+            uuids.append(item['uuid'])
+            student_ids.append(item['student_id'])
+
+        workflows = AssessmentWorkflow.objects.filter(submission_uuid__in=uuids)
+        for workflow in workflows:
+            result[workflow.submission_uuid]['status'] = workflow.status
+
+        students_data = {}
+        students = AnonymousUserId.objects.select_related('user').filter(
+            course_id=self.location.course_key, anonymous_user_id__in=student_ids)
+        for student in students:
+            students_data[student.anonymous_user_id] = {
+                'username': student.user.username,
+                'email': student.user.email,
+                'user_id': student.user.id
+            }
+
+        for uuid_key, res in result.items():
+            res.update(students_data[res['student_id']])
+            result[uuid_key] = res
+
+        result = result.values()
+
+        return {'result': sorted(result, key=lambda k: k['username'])}
 
     def get_student_submission_context(self, student_username, submission):
         """

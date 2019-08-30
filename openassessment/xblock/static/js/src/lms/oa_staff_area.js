@@ -55,18 +55,21 @@
          * @returns {promise} A promise representing the successful loading
          *     of the student info section.
          */
-        loadStudentInfo: function(classToExpand) {
+        loadStudentInfo: function(classToExpand, userEmail, tabClassName, fnCallback) {
             var view = this;
-            var $manageLearnersTab = $('.openassessment__staff-tools', this.element);
+            var $manageLearnersTab = $('.' + (tabClassName ? tabClassName : 'openassessment__staff-tools'), this.element);
             var $form = $manageLearnersTab.find('.openassessment_student_info_form');
-            var studentUsername = $manageLearnersTab.find('.openassessment__student_username').val();
+            var studentUsername = userEmail;
+            if (!studentUsername) {
+                studentUsername = $manageLearnersTab.find('.openassessment__student_username').val();
+            }
             var showFormError = function(errorMessage) {
                 $form.find('.form--error').text(errorMessage).focus();
             };
             var deferred = $.Deferred();
 
             // Clear any previous student information
-            $('.openassessment__student-info', view.element).text('');
+            $manageLearnersTab.find('.openassessment__student-info').text('');
 
             if (studentUsername.trim()) {
                 this.server.studentInfo(studentUsername).done(function(html) {
@@ -74,7 +77,7 @@
                     showFormError('');
 
                     // Load the HTML and install event handlers
-                    $('.openassessment__student-info', view.element).replaceWith(html);
+                    $manageLearnersTab.find('.openassessment__student-info').replaceWith(html);
 
                     // Install key handler for cancel submission button.
                     $manageLearnersTab.on('click', '.action--submit-cancel-submission', function(eventObject) {
@@ -107,7 +110,7 @@
                                     submissionID = rootElement.data('submission-uuid');
 
                                 eventObject.preventDefault();
-                                view.submitStaffOverride(submissionID, rubric, $manageLearnersTab);
+                                view.submitStaffOverride(submissionID, rubric, $manageLearnersTab, fnCallback);
                             }
                         );
                     }
@@ -266,6 +269,28 @@
             });
         },
 
+        loadStudentAndStatuses: function(studentEmail) {
+            var view = this;
+            var $staffArea = $('.openassessment__staff-area', this.element);
+            view.server.studentStatuses().done(function(studentsLst) {
+                var html = '<table class="staff-info__status__table">';
+                html += '<thead><tr><th>User</th><th>Step</th><th></th></tr></thead>';
+                html += '<tbody>';
+                $.each(studentsLst, function(idx, val) {
+                    var style = '';
+                    if (val.email === studentEmail) {
+                        style = "font-weight:700; color: #2dd52d;";
+                    }
+                    html += '<tr><td style="' + style + '">' + val.email + '</td>';
+                    html += '<td style="' + style + '">' + val.status + '</td>';
+                    html += '<td><a href="javascript: void(0);" data-status="' + val.status + '" data-email="' + val.email + '" style="color: #31acee;" class="submit-assessment">Manage</a></td></tr>';
+                });
+                html += '</tbody>';
+                html += '</table>';
+                $staffArea.find('.staff-manage-learner-content').html(html);
+            });
+        },
+
         /**
          * Install event handlers for the view.
          */
@@ -278,6 +303,21 @@
             if ($staffArea.length <= 0) {
                 return;
             }
+
+            $staffArea.on('click', '.submit-assessment', function(eventObject) {
+                var studentEmail = $(this).data('email');
+                var studentStatus = $(this).data('status');
+                var classToExpand = 'staff-info__student__grade';
+                eventObject.preventDefault();
+                if (studentStatus === 'waiting') {
+                    classToExpand = 'staff-info__staff-override';
+                }
+                view.loadStudentInfo(classToExpand, studentEmail, 'openassessment__staff-manage-learner', function() {
+                    $staffArea.find('.staff-manage-learner-content').html('Loading...');
+                    $staffArea.find('.openassessment__student-info').html('');
+                    view.loadStudentAndStatuses(studentEmail);
+                });
+            });
 
             // Install a click handler for the staff button panel
             $staffArea.find('.ui-staff__button').click(
@@ -301,7 +341,17 @@
                         $staffArea.find('.ui-staff__button').removeClass('is--active').attr('aria-expanded', 'false');
                         // Set "is--active" and aria-expanded state on the toggled button.
                         $button.addClass('is--active').attr('aria-expanded', 'true');
-                        $panel.slideDown();
+                        if ($button.hasClass('button-staff-manage-learner')) {
+                            $staffArea.find('.staff-manage-learner-content').html('Loading...');
+                            $staffArea.find('.openassessment__student-info').html('');
+                            $panel.slideDown({
+                                complete: function() {
+                                    view.loadStudentAndStatuses();
+                                }
+                            });
+                        } else {
+                            $panel.slideDown();
+                        }
                     }
                     // For accessibility, move focus to the first focusable component.
                     $panel.find('.ui-staff_close_button').focus();
@@ -324,6 +374,23 @@
                         }
                     });
 
+                }
+            );
+
+            $staffArea.find('.ui-list_learners_close_button').click(
+                function(eventObject) {
+                    var $button = $(eventObject.currentTarget),
+                        $panel = $button.closest('.wrapper--ui-staff');
+                    $staffArea.find('.ui-staff__button').removeClass('is--active').attr('aria-expanded', 'false');
+                    $panel.slideUp();
+
+                    // For accessibility, move focus back to the tab associated with the closed panel.
+                    $staffArea.find('.ui-staff__button').each(function(index, button) {
+                        var $staffPanel = $staffArea.find('.' + $(button).data('panel')).first();
+                        if ($staffPanel[0] === $panel[0]) {
+                            $(button).focus();
+                        }
+                    });
                 }
             );
 
@@ -507,7 +574,7 @@
          * @param {element} scope An ancestor element for the submit button (to allow for shared
          *     classes in different form).
          */
-        submitStaffOverride: function(submissionID, rubric, scope) {
+        submitStaffOverride: function(submissionID, rubric, scope, fnCallback) {
             var view = this;
             var successCallback = function() {
                 view.baseView.unsavedWarningEnabled(false, view.OVERRIDE_UNSAVED_WARNING_KEY);
@@ -516,7 +583,11 @@
                 // section expanded. This section will show the learner's
                 // final grade and in the future should include details of
                 // the staff override itself.
-                view.loadStudentInfo('staff-info__student__grade');
+                if (fnCallback) {
+                    fnCallback();
+                } else {
+                    view.loadStudentInfo('staff-info__student__grade');
+                }
             };
             this.callStaffAssess(submissionID, rubric, scope, successCallback, '.staff-override-error', 'regrade');
         },
