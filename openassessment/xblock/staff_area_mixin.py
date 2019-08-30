@@ -269,6 +269,7 @@ class StaffAreaMixin(object):
             course_id=self.location.course_key, anonymous_user_id__in=student_ids)
         for student in students:
             students_data[student.anonymous_user_id] = {
+                'name': student.user.first_name + ' ' + student.user.last_name,
                 'username': student.user.username,
                 'email': student.user.email,
                 'user_id': student.user.id
