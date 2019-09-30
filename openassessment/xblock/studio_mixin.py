@@ -17,7 +17,7 @@ from django.utils.translation import ugettext_lazy
 
 from openassessment.xblock.data_conversion import (create_rubric_dict, make_django_template_key,
                                                    update_assessments_format)
-from openassessment.xblock.defaults import DEFAULT_EDITOR_ASSESSMENTS_ORDER, DEFAULT_RUBRIC_FEEDBACK_TEXT
+from openassessment.xblock.defaults import DEFAULT_EDITOR_ASSESSMENTS_ORDER, DEFAULT_RUBRIC_FEEDBACK_TEXT, DEFAULT_DUE
 from openassessment.xblock.resolve_dates import resolve_dates
 from openassessment.xblock.schema import EDITOR_UPDATE_SCHEMA
 from openassessment.xblock.validation import validator
@@ -176,6 +176,8 @@ class StudioMixin(object):
         # If the data is invalid, this means something is wrong with
         # our JavaScript, so we log an exception.
         try:
+            if not data.get('submission_due'):
+                data['submission_due'] = DEFAULT_DUE
             data = EDITOR_UPDATE_SCHEMA(data)
         except MultipleInvalid:
             logger.exception('Editor context is invalid')
