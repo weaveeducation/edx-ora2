@@ -701,6 +701,9 @@ def serialize_content_to_xml(oa_block, root):
     if oa_block.submission_due is not None:
         root.set('submission_due', unicode(oa_block.submission_due))
 
+    if oa_block.submission_due_empty is not None:
+        root.set('submission_due_empty', unicode(oa_block.submission_due_empty))
+
     # Set leaderboard show
     if oa_block.leaderboard_show:
         root.set('leaderboard_show', unicode(oa_block.leaderboard_show))
@@ -858,6 +861,10 @@ def parse_from_xml(root):
     if 'submission_due' in root.attrib:
         submission_due = parse_date(unicode(root.attrib['submission_due']), name="submission due date")
 
+    submission_due_empty = False
+    if 'submission_due_empty' in root.attrib:
+        submission_due_empty = _parse_boolean(unicode(root.attrib['submission_due_empty']))
+
     text_response = None
     if 'text_response' in root.attrib:
         text_response = unicode(root.attrib['text_response'])
@@ -932,6 +939,7 @@ def parse_from_xml(root):
         'rubric_feedback_default_text': rubric['feedback_default_text'],
         'submission_start': submission_start,
         'submission_due': submission_due,
+        'submission_due_empty': submission_due_empty,
         'text_response': text_response,
         'file_upload_response': file_upload_response,
         'allow_file_upload': allow_file_upload,

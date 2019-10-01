@@ -166,10 +166,7 @@ OpenAssessment.EditSettingsView.prototype = {
 
     **/
     submissionDue: function(dateString, timeString) {
-        if (dateString && timeString) {
-            return this.dueDatetimeControl.datetime(dateString, timeString);
-        }
-        return '';
+        return this.dueDatetimeControl.datetime(dateString, timeString);
     },
 
     /**

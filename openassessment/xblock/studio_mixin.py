@@ -110,7 +110,7 @@ class StudioMixin(object):
             self.start, self.due,
             [(self.submission_start, self.submission_due)] +
             [(asmnt.get('start'), asmnt.get('due')) for asmnt in self.valid_assessments],
-            self._
+            self._, self.submission_due_empty
         )
 
         submission_start, submission_due = date_ranges[0]
@@ -137,6 +137,7 @@ class StudioMixin(object):
             'title': self.title,
             'submission_due': submission_due,
             'submission_start': submission_start,
+            'submission_due_empty': self.submission_due_empty,
             'assessments': assessments,
             'criteria': criteria,
             'feedbackprompt': self.rubric_feedback_prompt,
@@ -175,9 +176,11 @@ class StudioMixin(object):
         # Validate and sanitize the data using a schema
         # If the data is invalid, this means something is wrong with
         # our JavaScript, so we log an exception.
+        submission_due_empty = False
         try:
             if not data.get('submission_due'):
                 data['submission_due'] = DEFAULT_DUE
+                submission_due_empty = True
             data = EDITOR_UPDATE_SCHEMA(data)
         except MultipleInvalid:
             logger.exception('Editor context is invalid')
@@ -223,6 +226,7 @@ class StudioMixin(object):
             data['assessments'],
             submission_start=data['submission_start'],
             submission_due=data['submission_due'],
+            submission_due_empty=submission_due_empty,
             leaderboard_show=data['leaderboard_show']
         )
         if not success:
@@ -251,6 +255,7 @@ class StudioMixin(object):
             self.white_listed_file_types_string = None
         self.allow_latex = bool(data['allow_latex'])
         self.leaderboard_show = data['leaderboard_show']
+        self.submission_due_empty = submission_due_empty
 
         return {'success': True, 'msg': self._(u'Successfully updated OpenAssessment XBlock')}
 
