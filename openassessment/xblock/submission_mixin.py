@@ -529,6 +529,7 @@ class SubmissionMixin(object):
 
         context['file_upload_type'] = self.file_upload_type
         context['allow_latex'] = self.allow_latex
+        context['submission_due_empty'] = self.submission_due_empty
 
         file_urls = None
 
