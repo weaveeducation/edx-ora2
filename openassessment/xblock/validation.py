@@ -346,7 +346,6 @@ def validator(oa_block, _, strict_post_release=True):
         # Dates
         submission_dates = [(submission_start, submission_due)]
         assessment_dates = [(asmnt.get('start'), asmnt.get('due')) for asmnt in assessments]
-        print '------------', submission_due_empty
         success, msg = validate_dates(oa_block.start, oa_block.due, submission_dates + assessment_dates, _,
                                       submission_due_empty)
         if not success:

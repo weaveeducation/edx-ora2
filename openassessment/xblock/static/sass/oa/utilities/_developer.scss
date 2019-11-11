@@ -715,6 +715,11 @@
                 @include float(right);
                 width: 70%;
               }
+
+              select{
+                @include float(right);
+                width: 70%;
+              }
             }
             .openassessment_criterion_prompt{
               padding: 10px;

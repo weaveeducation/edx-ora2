@@ -31,16 +31,37 @@
                     </label>
                 </div>
             </li>
+            <li class="field comp-setting-entry">
+                <div class="wrapper-comp-settings">
+                    <label class="openassessment_criterion_use_grading_key setting-label">
+                        {% trans "Use Grading Key" %}
+                        <select class="input setting-input openassessment_criterion_grading_key_selector">
+                            <option value="1" {% if criterion_use_grading_key %}selected="true"{% endif %}>Yes</option>
+                            <option value="0" {% if not criterion_use_grading_key %}selected="true"{% endif %}>No</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="wrapper-comp-settings openassessment_criterion_grading_key_input" style="padding-top: 10px; {% if not criterion_use_grading_key %}display: none;{% endif %}">
+                    <label class="openassessment_criterion_grading_key setting-label">
+                        <input class="openassessment_criterion_grading_key_number input setting-input"
+                               type="number"
+                               value="{% if criterion_grading_key %}{{ criterion_grading_key }}{% else %}1{% endif %}"
+                               min="1"
+                               max="100">
+                    </label>
+                </div>
+            </li>
+            <li class="field comp-setting-entry" style="padding-top: 0px;"></li>
         </ul>
         <ul class="openassessment_criterion_option_list">
-            {% if criterion_options %}
+            {% if criterion_options and not criterion_use_grading_key %}
                 {% for option in criterion_options %}
                     {% include "openassessmentblock/edit/oa_edit_option.html" with criterion_name=criterion_name option_name=option.name option_label=option.label option_points=option.points option_explanation=option.explanation %}
                 {% endfor %}
             {% endif %}
         </ul>
 
-        <div class="openassessment_criterion_add_option openassessment_option_header">
+        <div class="openassessment_criterion_add_option openassessment_option_header" {% if criterion_use_grading_key %}style="display: none;"{% endif %}>
             <h2>{% trans "Add Option" %}</h2>
         </div>
 

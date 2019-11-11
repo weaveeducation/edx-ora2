@@ -34,12 +34,8 @@ OpenAssessment.ItemUtilities = {
         var points = $(element).attr('data-points');
         var label = $(element).attr('data-label');
         var name = $(element).val();
-        // We don't want the lack of a label to make it look like - 1 points.
-        if (label === "") {
-            label = gettext('Unnamed Option');
-        }
-        var singularString = label + " - " + points + " point";
-        var multipleString = label + " - " + points + " points";
+        var singularString = (label !== '') ? (label + " - " + points + " point") : (points + " point");
+        var multipleString = (label !== '') ?  (label + " - " + points + " points") : (points + " points");
 
         // If the option's name value is the empty string, that indicates to us that it is not a user-specified option,
         // but represents the "Not Selected" option which all criterion drop-downs have. This is an acceptable
@@ -325,7 +321,6 @@ OpenAssessment.RubricOption.prototype = {
 
      */
     addHandler: function() {
-
         var criterionElement = $(this.element).closest(".openassessment_criterion");
         var criterionName = $(criterionElement).data('criterion');
         var criterionLabel = $(".openassessment_criterion_label", criterionElement).val();
@@ -438,6 +433,9 @@ OpenAssessment.RubricCriterion = function(element, notifier) {
     this.notifier = notifier;
     this.labelSel = $('.openassessment_criterion_label', this.element);
     this.promptSel = $('.openassessment_criterion_prompt', this.element);
+    this.gradingKeySel = $(".openassessment_criterion_grading_key_selector", this.element);
+    this.gradingKeyInput = $(".openassessment_criterion_grading_key_number", this.element);
+    this.gradingKeyVal = parseInt(this.gradingKeyInput.val());
     this.optionContainer = new OpenAssessment.Container(
         OpenAssessment.RubricOption, {
             containerElement: $(".openassessment_criterion_option_list", this.element).get(0),
@@ -457,9 +455,85 @@ OpenAssessment.RubricCriterion.prototype = {
      of this item, and add event listeners specific to this container item.
      **/
     addEventListeners: function() {
+        var self = this;
+        this.gradingKeySel.change(function() {
+            var useGradingKeySel = (parseInt($(this).val(), 10) === 1);
+            var gradingKeyVal = self.gradingKeyInput.val();
+            var containerElement = $(".openassessment_criterion_option_list", self.element).get(0);
+            var inputElement = $(".openassessment_criterion_grading_key_input", self.element).get(0);
+            var addButtonElement = $(".openassessment_criterion_add_option", self.element).get(0);
+            if (useGradingKeySel) {
+                $(containerElement).empty();
+                $(addButtonElement).hide();
+                $(inputElement).show();
+            } else {
+                $(containerElement).show();
+                $(addButtonElement).show();
+                $(inputElement).hide();
+            }
+            if (gradingKeyVal === '') {
+                self.gradingKeyInput.val('1');
+                self.gradingKeyVal = 1;
+            } else {
+                self.gradingKeyVal = parseInt(self.gradingKeyVal, 10);
+            }
+            self.sendNotificationToTrainingBlock();
+        });
+        this.gradingKeyInput.on('change keyup', function() {
+            var newVal = $(this).val();
+            if ((self.gradingKeyVal !== parseInt(newVal, 10)) && (newVal !== '')) {
+                self.gradingKeyVal = parseInt(newVal, 10);
+                self.sendNotificationToTrainingBlock();
+            }
+        });
+        $(this.gradingKeyInput).focusout(function() {
+            var grKey = self.gradingKeyInput.val();
+            if (grKey === '') {
+                self.gradingKeyInput.val(self.gradingKeyVal);
+            }
+            if (parseInt(grKey, 10) === 0) {
+                self.gradingKeyVal = 1;
+                self.gradingKeyInput.val(self.gradingKeyVal);
+                self.sendNotificationToTrainingBlock();
+            }
+            if (parseInt(grKey, 10) < 0) {
+                self.gradingKeyVal = (-1) * self.gradingKeyVal;
+                self.gradingKeyInput.val(self.gradingKeyVal);
+                self.sendNotificationToTrainingBlock();
+            }
+            if (parseInt(grKey, 10) > 100) {
+                self.gradingKeyVal = 100;
+                self.gradingKeyInput.val(self.gradingKeyVal);
+                self.sendNotificationToTrainingBlock();
+            }
+        });
         this.optionContainer.addEventListeners();
         // Install a focus out handler for container changes.
         $(this.element).focusout($.proxy(this.updateHandler, this));
+    },
+
+    sendNotificationToTrainingBlock: function() {
+        var criterionName = $(this.element).data('criterion');
+        var useGradingKey = parseInt(this.gradingKeySel.val(), 10) === 1;
+        if (useGradingKey) {
+            this.notifier.notificationFired(
+                "changeAllOptions",
+                {
+                    "criterionName": criterionName,
+                    "label": this.label(),
+                    "options": this.gradingKeyVal
+                }
+            );
+        } else {
+            this.notifier.notificationFired(
+                "changeAllOptions",
+                {
+                    "criterionName": criterionName,
+                    "label": this.label(),
+                    "options": null
+                }
+            );
+        }
     },
 
     /**
@@ -482,11 +556,29 @@ OpenAssessment.RubricCriterion.prototype = {
      }
      **/
     getFieldValues: function() {
+        var useGradingKey = parseInt(this.gradingKeySel.val(), 10) === 1;
+        var options = [];
+        if (useGradingKey) {
+            for (var i = 0; i <= this.gradingKeyVal; i++) {
+                options.push({
+                    explanation: i.toString(),
+                    label: (i === 1) ? (i.toString() + ' point') : (i.toString() + ' points'),
+                    name: i.toString(),
+                    order_num: i,
+                    points: i
+                });
+            }
+        } else {
+            options = this.optionContainer.getItemValues();
+        }
+
         var fields = {
             label: this.label(),
             prompt: this.prompt(),
             feedback: this.feedback(),
-            options: this.optionContainer.getItemValues()
+            options: options,
+            use_grading_key: useGradingKey,
+            grading_key: this.gradingKeyVal
         };
 
         // New criteria won't have unique names assigned.
