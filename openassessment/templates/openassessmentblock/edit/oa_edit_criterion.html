@@ -43,6 +43,7 @@
                 </div>
                 <div class="wrapper-comp-settings openassessment_criterion_grading_key_input" style="padding-top: 10px; {% if not criterion_use_grading_key %}display: none;{% endif %}">
                     <label class="openassessment_criterion_grading_key setting-label">
+                        {% trans "Maximum Grade Available" %}
                         <input class="openassessment_criterion_grading_key_number input setting-input"
                                type="number"
                                value="{% if criterion_grading_key %}{{ criterion_grading_key }}{% else %}1{% endif %}"
