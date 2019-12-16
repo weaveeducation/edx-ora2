@@ -11,7 +11,7 @@ import pkg_resources
 import pytz
 from webob import Response
 from xblock.core import XBlock
-from xblock.fields import Boolean, Integer, List, Scope, String
+from xblock.fields import Boolean, Integer, List, Scope, String, Dict
 from xblock.fragment import Fragment
 
 from django.conf import settings
@@ -36,6 +36,7 @@ from openassessment.xblock.submission_mixin import SubmissionMixin
 from openassessment.xblock.validation import validator
 from openassessment.xblock.workflow_mixin import WorkflowMixin
 from openassessment.xblock.xml import parse_from_xml, serialize_content_to_xml
+from turnitin_integration.service import get_turnitin_key
 
 logger = logging.getLogger(__name__)
 
@@ -242,10 +243,28 @@ class OpenAssessmentBlock(MessageMixin,
         help="Saved descriptions for each uploaded file."
     )
 
+    saved_file_names = String(
+        default=u"",
+        scope=Scope.user_state,
+        help="Saved file names."
+    )
+
     no_peers = Boolean(
         default=False,
         scope=Scope.user_state,
         help="Indicates whether or not there are peers to grade."
+    )
+
+    turnitin_enabled = Boolean(
+        default=False,
+        scope=Scope.settings,
+        help="Turnitin enabled."
+    )
+
+    turnitin_config = Dict(
+        default={},
+        scope=Scope.settings,
+        help="Turnitin config."
     )
 
     @property
@@ -752,6 +771,8 @@ class OpenAssessmentBlock(MessageMixin,
         block.file_upload_type = config['file_upload_type']
         block.white_listed_file_types_string = config['white_listed_file_types']
         block.allow_latex = config['allow_latex']
+        block.turnitin_enabled = config['turnitin_enabled']
+        block.turnitin_config = config['turnitin_config']
         block.leaderboard_show = config['leaderboard_show']
         block.group_access = config['group_access']
 
@@ -1185,3 +1206,10 @@ class OpenAssessmentBlock(MessageMixin,
         Returns the xblock id
         """
         return self._serialize_opaque_key(self.scope_ids.usage_id)
+
+    def check_turnitin_enabled_in_org(self):
+        if hasattr(self, 'location'):
+            key = get_turnitin_key(self.location.course_key.org)
+            if key:
+                return True
+        return False

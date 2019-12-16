@@ -34,7 +34,7 @@ def load_requirements(*requirements_paths):
 
 setup(
     name='ora2',
-    version='2.2.10',
+    version='2.2.11',
     author='edX',
     url='http://github.com/edx/edx-ora2',
     description='edx-ora2',

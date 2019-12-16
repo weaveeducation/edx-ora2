@@ -13,6 +13,7 @@ from openassessment.workflow.errors import AssessmentWorkflowError, AssessmentWo
 from openassessment.workflow.models import AssessmentWorkflow
 from openassessment.xblock.data_conversion import create_submission_dict
 from openassessment.xblock.resolve_dates import DISTANT_FUTURE, DISTANT_PAST
+from turnitin_integration.service import get_submissions_status as get_turnitin_submissions_status
 
 from .user_data import get_user_preferences
 
@@ -317,6 +318,16 @@ class StaffAreaMixin(object):
 
         if self.rubric_feedback_default_text is not None:
             context['rubric_feedback_default_text'] = self.rubric_feedback_default_text
+
+        turnitin_enabled = self.check_turnitin_enabled_in_org() and self.turnitin_enabled
+        context["turnitin_enabled"] = turnitin_enabled
+
+        if turnitin_enabled:
+            context["turnitin_data"] = get_turnitin_submissions_status(submission['uuid'], True)
+            context['turnitin_display_link'] = True
+        else:
+            context["turnitin_data"] = None
+            context['turnitin_display_link'] = None
 
         context['xblock_id'] = self.get_xblock_id()
         return context

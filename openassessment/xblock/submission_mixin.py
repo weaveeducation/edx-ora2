@@ -1,6 +1,7 @@
 import json
 import logging
 
+from django.urls import reverse
 from xblock.core import XBlock
 
 from data_conversion import create_submission_dict, prepare_submission_for_serialization
@@ -11,6 +12,9 @@ from validation import validate_submission
 
 from .resolve_dates import DISTANT_FUTURE
 from .user_data import get_user_preferences
+from turnitin_integration.service import get_submissions_status as get_turnitin_submissions_status,\
+    create_submissions as turnitin_create_submissions, get_turnitin_key
+
 
 logger = logging.getLogger(__name__)
 
@@ -222,6 +226,9 @@ class SubmissionMixin(object):
         Returns:
             dict: Contains a bool 'success' and unicode string 'msg'.
         """
+        if 'file_names' in data:
+            self.saved_file_names = json.dumps(data['file_names'])
+
         if 'descriptions' in data:
             descriptions = data['descriptions']
 
@@ -277,6 +284,10 @@ class SubmissionMixin(object):
         submission = api.create_submission(student_item_dict, student_sub_dict)
         self.create_workflow(submission["uuid"])
         self.submission_uuid = submission["uuid"]
+
+        if self.check_turnitin_enabled_in_org() and self.turnitin_enabled:
+            turnitin_create_submissions(submission["uuid"], self.get_student_item_dict(),
+                                        student_sub_data, self.saved_file_names)
 
         # Emit analytics event...
         self.runtime.publish(
@@ -589,6 +600,13 @@ class SubmissionMixin(object):
                     and not self.saved_response and not file_urls:
                 submit_enabled = False
             context['submit_enabled'] = submit_enabled
+
+            context['turnitin_eula'] = None
+
+            if self.check_turnitin_enabled_in_org() and self.turnitin_enabled:
+                turnitin_key = get_turnitin_key(self.location.course_key.org)
+                context['turnitin_eula'] = reverse('turnitin_eula', kwargs={'api_key_id': turnitin_key.id}) if turnitin_key else None
+
             path = "openassessmentblock/response/oa_response.html"
         elif workflow["status"] == "cancelled":
             context["workflow_cancellation"] = self.get_workflow_cancellation_info(self.submission_uuid)
@@ -608,9 +626,22 @@ class SubmissionMixin(object):
             )
             peer_in_workflow = "peer" in workflow["status_details"]
             self_in_workflow = "self" in workflow["status_details"]
+
             context["peer_incomplete"] = peer_in_workflow and not workflow["status_details"]["peer"]["complete"]
             context["self_incomplete"] = self_in_workflow and not workflow["status_details"]["self"]["complete"]
             context["student_submission"] = create_submission_dict(student_submission, self.prompts)
+
+            turnitin_enabled = self.check_turnitin_enabled_in_org() and self.turnitin_enabled
+            context["turnitin_enabled"] = turnitin_enabled
+
+            if turnitin_enabled:
+                context["turnitin_data"] = get_turnitin_submissions_status(
+                    workflow["submission_uuid"], self.turnitin_config.get('display_score', True))
+                context['turnitin_display_link'] = self.turnitin_config.get('display_link', True)
+            else:
+                context["turnitin_data"] = None
+                context['turnitin_display_link'] = None
+
             path = 'openassessmentblock/response/oa_response_submitted.html'
 
         return path, context

@@ -209,6 +209,8 @@ OpenAssessment.StudioView.prototype = {
             fileTypeWhiteList: view.settingsView.fileTypeWhiteList(),
             latexEnabled: view.settingsView.latexEnabled(),
             leaderboardNum: view.settingsView.leaderboardNum(),
+            turnitinEnabled: view.settingsView.turnitinEnabled(),
+            turnitinConfig: view.settingsView.turnitinSettings(),
             editorAssessmentsOrder: view.settingsView.editorAssessmentsOrder()
         }).done(
             // Notify the client-side runtime that we finished saving

@@ -464,6 +464,8 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
                 file_upload_type: options.fileUploadType,
                 white_listed_file_types: options.fileTypeWhiteList,
                 allow_latex: options.latexEnabled,
+                turnitin_enabled: options.turnitinEnabled,
+                turnitin_config: options.turnitinConfig,
                 leaderboard_show: options.leaderboardNum
             });
             return $.Deferred(function(defer) {
@@ -550,13 +552,13 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
         /**
          * Sends request to server to save descriptions for each uploaded file.
          */
-        saveFilesDescriptions: function(descriptions) {
+        saveFilesDescriptions: function(descriptions, fileNames) {
             var url = this.url('save_files_descriptions');
             return $.Deferred(function(defer) {
                 $.ajax({
                     type: "POST",
                     url: url,
-                    data: JSON.stringify({descriptions: descriptions}),
+                    data: JSON.stringify({descriptions: descriptions, file_names: fileNames}),
                     contentType: jsonContentType
                 }).done(function(data) {
                     if (data.success) { defer.resolve(); }

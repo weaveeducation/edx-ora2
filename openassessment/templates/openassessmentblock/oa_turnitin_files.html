@@ -1,0 +1,16 @@
+{% if turnitin_enabled and turnitin_data.result %}
+{% for turnitin_el in turnitin_data.result %}
+<div class="step__message message message--{{ turnitin_el.css_class }}">
+    <h5 class="message__title">{{ turnitin_el.title }}</h5>
+    <div class="message__content">
+        <p>Status: {{ turnitin_el.status }}
+        {% if turnitin_el.submission_is_complete and turnitin_display_link %}
+            <br />Turnitin Originality Check report: {% if turnitin_el.report_is_ready %}<a href="{{ turnitin_el.url }}" target="_blank">Open in new tab</a>{% else %}Processing{% endif %}
+        {% endif %}
+        </p>
+    </div>
+</div>
+{% endfor %}
+{% else %}
+There are no files for Turnitin check.
+{% endif %}

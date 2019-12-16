@@ -131,6 +131,8 @@ class StudioMixin(object):
             feedback_default_text = DEFAULT_RUBRIC_FEEDBACK_TEXT
         course_id = self.location.course_key if hasattr(self, 'location') else None
 
+        turnitin_settings_display = self.check_turnitin_enabled_in_org()
+
         return {
             'prompts': self.prompts,
             'prompts_type': self.prompts_type,
@@ -155,6 +157,12 @@ class StudioMixin(object):
             ],
             'base_asset_url': self._get_base_url_path_for_course_assets(course_id),
             'is_released': self.is_released(),
+            'turnitin_settings_display': turnitin_settings_display,
+            'turnitin_enabled': self.turnitin_enabled if turnitin_settings_display else False,
+            'turnitin_display_score': self.turnitin_config.get('display_score',
+                                                               True) if turnitin_settings_display else True,
+            'turnitin_display_link': self.turnitin_config.get('display_link',
+                                                              True) if turnitin_settings_display else True
         }
 
     @XBlock.json_handler
@@ -255,6 +263,8 @@ class StudioMixin(object):
             self.white_listed_file_types_string = None
         self.allow_latex = bool(data['allow_latex'])
         self.leaderboard_show = data['leaderboard_show']
+        self.turnitin_enabled = data['turnitin_enabled']
+        self.turnitin_config = data['turnitin_config']
         self.submission_due_empty = submission_due_empty
 
         return {'success': True, 'msg': self._(u'Successfully updated OpenAssessment XBlock')}
