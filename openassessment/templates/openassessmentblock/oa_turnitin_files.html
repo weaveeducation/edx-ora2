@@ -1,4 +1,7 @@
 {% if turnitin_enabled and turnitin_data.result %}
+{% if display_header %}
+<h5 style="margin-bottom: 10px;">Turnitin Details</h5>
+{% endif %}
 {% for turnitin_el in turnitin_data.result %}
 <div class="step__message message message--{{ turnitin_el.css_class }}">
     <h5 class="message__title">{{ turnitin_el.title }}</h5>

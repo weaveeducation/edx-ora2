@@ -66,7 +66,7 @@
 {% block turnitin %}
 {% if turnitin_enabled %}
 <li id="openassessment__response__{{ xblock_id }}"
-    class="openassessment__steps__step step--turnitin {{ turnitin_data.css_class }} ui-slidable__container is--initially--collapsed"
+    class="openassessment__steps__step step--turnitin {{ turnitin_data.css_class }} ui-slidable__container is--showing"
     tabindex="-1">
     <header class="step__header ui-slidable__control">
         <span>
@@ -82,9 +82,9 @@
             </h4>
         </span>
     </header>
-    <div class="ui-slidable__content" aria-labelledby="oa_turnitin_{{ xblock_id }}" id="oa_turnitin_{{ xblock_id }}_content" style="display: none;">
+    <div class="ui-slidable__content" aria-labelledby="oa_turnitin_{{ xblock_id }}" id="oa_turnitin_{{ xblock_id }}_content">
         <div class="wrapper--step__content">
-            {% include "openassessmentblock/oa_turnitin_files.html" with turnitin_enabled=turnitin_enabled turnitin_data=turnitin_data %}
+            {% include "openassessmentblock/oa_turnitin_files.html" with turnitin_enabled=turnitin_enabled turnitin_data=turnitin_data display_header=False %}
         </div>
     </div>
 </li>
