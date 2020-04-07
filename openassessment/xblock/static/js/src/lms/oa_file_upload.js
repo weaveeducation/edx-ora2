@@ -15,7 +15,7 @@ Returns:
 
 */
 OpenAssessment.FileUploader = function() {
-    this.upload = function(url, file) {
+    this.upload = function(url, file, contentType) {
         return $.Deferred(
             function(defer) {
                 $.ajax({
@@ -24,7 +24,7 @@ OpenAssessment.FileUploader = function() {
                     data: file,
                     async: false,
                     processData: false,
-                    contentType: file.type
+                    contentType: contentType ? contentType : file.type
                 }).done(
                     function() {
                         // Log an analytics event

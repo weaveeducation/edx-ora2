@@ -356,7 +356,7 @@ class SubmissionMixin(object):
         try:
             key = self._get_student_item_key(file_num)
             url = file_upload_api.get_upload_url(key, content_type)
-            return {'success': True, 'url': url}
+            return {'success': True, 'url': url, 'content_type': content_type}
         except FileUploadError:
             logger.exception("Error retrieving upload URL.")
             return {'success': False, 'msg': self._(u"Error retrieving upload URL.")}

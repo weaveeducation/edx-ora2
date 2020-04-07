@@ -521,7 +521,7 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
                     data: JSON.stringify({contentType: contentType, filename: filename, filenum: filenum}),
                     contentType: jsonContentType
                 }).done(function(data) {
-                    if (data.success) { defer.resolve(data.url); }
+                    if (data.success) { defer.resolve(data.url, data.content_type); }
                     else { defer.rejectWith(this, [data.msg]); }
                 }).fail(function() {
                     defer.rejectWith(this, [gettext('Could not retrieve upload url.')]);
