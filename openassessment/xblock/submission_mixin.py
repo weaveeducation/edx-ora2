@@ -19,6 +19,10 @@ from turnitin_integration.service import get_submissions_status as get_turnitin_
 logger = logging.getLogger(__name__)
 
 
+class RequiredFilesAbsent(Exception):
+    pass
+
+
 class SubmissionMixin(object):
     """Submission Mixin introducing all Submission-related functionality.
 
@@ -112,11 +116,18 @@ class SubmissionMixin(object):
                     saved_files_descriptions = json.loads(self.saved_files_descriptions)
                 except ValueError:
                     saved_files_descriptions = None
-                submission = self.create_submission(
-                    student_item_dict,
-                    student_sub_data,
-                    saved_files_descriptions
-                )
+                try:
+                    submission = self.create_submission(
+                        student_item_dict,
+                        student_sub_data,
+                        saved_files_descriptions
+                    )
+                except RequiredFilesAbsent:
+                    return (
+                        False,
+                        'EBADARGS',
+                        "Required files are absent"
+                    )
 
                 if len(self.rubric_criteria) == 0 and not self.in_studio_preview:
                     api.set_score(submission["uuid"], self.max_score(), self.max_score())
@@ -280,6 +291,8 @@ class SubmissionMixin(object):
                     student_sub_dict['files_descriptions'].append(file_description)
                 else:
                     break
+            if self.file_upload_response == 'required' and not student_sub_dict['file_keys']:
+                raise RequiredFilesAbsent("Required files absent")
 
         submission = api.create_submission(student_item_dict, student_sub_dict)
         self.create_workflow(submission["uuid"])

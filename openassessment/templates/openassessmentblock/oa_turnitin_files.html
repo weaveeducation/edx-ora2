@@ -1,4 +1,5 @@
-{% if turnitin_enabled and turnitin_data.result %}
+{% if turnitin_enabled %}
+{% if turnitin_data and turnitin_data.result %}
 {% if display_header %}
 <h5 style="margin-bottom: 10px;">Turnitin Details</h5>
 {% endif %}
@@ -16,4 +17,5 @@
 {% endfor %}
 {% else %}
 There are no files for Turnitin check.
+{% endif %}
 {% endif %}
