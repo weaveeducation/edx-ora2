@@ -323,7 +323,9 @@ class StaffAreaMixin(object):
         context["turnitin_enabled"] = turnitin_enabled
 
         if turnitin_enabled:
-            context["turnitin_data"] = get_turnitin_submissions_status(submission['uuid'], True)
+            context["turnitin_data"] = None
+            if submission:
+                context["turnitin_data"] = get_turnitin_submissions_status(submission['uuid'], True)
             context['turnitin_display_link'] = True
         else:
             context["turnitin_data"] = None

@@ -50,6 +50,13 @@ class Backend(BaseBackend):
         s3_key = bucket.get_key(key_name)
         return s3_key.get_contents_as_string()
 
+    def save_key_content_into_file(self, key, fp):
+        bucket_name, key_name = self._retrieve_parameters(key)
+        conn = _connect_to_s3()
+        bucket = conn.get_bucket(bucket_name)
+        s3_key = bucket.get_key(key_name)
+        s3_key.get_contents_to_file(fp)
+
     def remove_file(self, key):
         bucket_name, key_name = self._retrieve_parameters(key)
         conn = _connect_to_s3()
