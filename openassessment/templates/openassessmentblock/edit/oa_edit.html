@@ -204,6 +204,26 @@
                         </select>
                     </div>
                 </li>
+                <li id="openassessment_turnitin_add_to_index" class="field comp-setting-entry turnitin-setting {% if not turnitin_enabled %}is--hidden{% endif %}">
+                    <div class="wrapper-comp-setting">
+                        <label for="openassessment_turnitin_add_to_index_editor" class="setting-label">{% trans "Add to index" %}</label>
+                        <select id="openassessment_turnitin_add_to_index_editor" class="input setting-input" name="turnitin_add_to_index">
+                            <option value="0">{% trans "False"%}</option>
+                            <option value="1" {% if turnitin_add_to_index %} selected="true" {% endif %}>{% trans "True"%}</option>
+                        </select>
+                    </div>
+                    <p class="setting-help">{% trans "If set, the submission will be added to all valid node groups for future matching." %}</p>
+                </li>
+                <li id="openassessment_turnitin_auto_exclude_self_matching_scope" class="field comp-setting-entry turnitin-setting {% if not turnitin_enabled %}is--hidden{% endif %}">
+                    <div class="wrapper-comp-setting">
+                        <label for="openassessment_turnitin_auto_exclude_self_matching_scope_editor" class="setting-label">{% trans "Auto exclude self matching scope" %}</label>
+                        <select id="openassessment_turnitin_auto_exclude_self_matching_scope_editor" class="input setting-input" name="turnitin_auto_exclude_self_matching_scope">
+                            <option value="0">{% trans "NONE - Exclude no self matching submissions from Similarity Report"%}</option>
+                            <option value="1" {% if turnitin_auto_exclude_self_matching_scope %} selected="true" {% endif %}>{% trans "ALL - Exclude all self matching submissions from Similarity Report"%}</option>
+                        </select>
+                    </div>
+                    <p class="setting-help">{% trans "Self matching submissions to exclude from report." %}</p>
+                </li>
                 {% endif %}
             </ul>
 

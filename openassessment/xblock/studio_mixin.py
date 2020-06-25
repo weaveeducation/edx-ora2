@@ -162,7 +162,11 @@ class StudioMixin(object):
             'turnitin_display_score': self.turnitin_config.get('display_score',
                                                                True) if turnitin_settings_display else True,
             'turnitin_display_link': self.turnitin_config.get('display_link',
-                                                              True) if turnitin_settings_display else True
+                                                              True) if turnitin_settings_display else True,
+            'turnitin_add_to_index': self.turnitin_config.get('add_to_index',
+                                                              False) if turnitin_settings_display else False,
+            'turnitin_auto_exclude_self_matching_scope': self.turnitin_config.get(
+                'auto_exclude_self_matching_scope', False) if turnitin_settings_display else False
         }
 
     @XBlock.json_handler

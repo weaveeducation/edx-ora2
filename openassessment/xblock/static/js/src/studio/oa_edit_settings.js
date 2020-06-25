@@ -306,9 +306,13 @@ OpenAssessment.EditSettingsView.prototype = {
         if (parseInt(sel.val()) === 1) {
             var sel1 = $('#openassessment_turnitin_display_score_editor', this.settingsElement);
             var sel2 = $('#openassessment_turnitin_display_link_editor', this.settingsElement);
+            var sel3 = $('#openassessment_turnitin_add_to_index_editor', this.settingsElement);
+            var sel4 = $('#openassessment_turnitin_auto_exclude_self_matching_scope_editor', this.settingsElement);
             return {
                 display_score: parseInt(sel1.val()) === 1,
-                display_link: parseInt(sel2.val()) === 1
+                display_link: parseInt(sel2.val()) === 1,
+                add_to_index: parseInt(sel3.val()) === 1,
+                auto_exclude_self_matching_scope: parseInt(sel4.val()) === 1
             };
         }
 
