@@ -73,3 +73,4 @@ test/selenium/screenshots/*
 logs/*.log*
 
 edx-ora2/
+venv/
