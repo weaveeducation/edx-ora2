@@ -115,6 +115,22 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
             }).promise();
         },
 
+        studentStatuses: function() {
+            var url = this.url('get_student_statuses');
+            return $.Deferred(function(defer) {
+                $.ajax({
+                    url: url,
+                    type: "POST",
+                    dataType: "json",
+                    data: '{}'
+                }).done(function(data) {
+                    defer.resolveWith(this, [data.result]);
+                }).fail(function() {
+                    defer.rejectWith(this, [gettext('This section could not be loaded.')]);
+                });
+            }).promise();
+        },
+
         /**
          * Renders the next submission for staff grading.
          *
