@@ -901,8 +901,8 @@ OpenAssessment.ResponseView.prototype = {
         // URL. This request requires appropriate CORS configuration for AJAX
         // PUT requests on the server.
         return view.server.getUploadUrl(filetype, filename, filenum).done(
-            function(url) {
-                view.fileUploader.upload(url, file)
+            function(url, contentType) {
+                view.fileUploader.upload(url, file, contentType)
                     .done(function() {
                         view.fileUrl(filenum);
                         view.baseView.toggleActionError('upload', null);
