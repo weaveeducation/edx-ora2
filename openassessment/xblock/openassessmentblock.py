@@ -139,6 +139,12 @@ class OpenAssessmentBlock(MessageMixin,
         help="ISO-8601 formatted string representing the submission due date."
     )
 
+    submission_due_empty = Boolean(
+        default=False,
+        scope=Scope.settings,
+        help="Empty submission due."
+    )
+
     text_response_raw = String(
         help="Specify whether learners must include a text based response to this problem's prompt.",
         default="required",
@@ -827,7 +833,8 @@ class OpenAssessmentBlock(MessageMixin,
             config['rubric_assessments'],
             submission_start=config['submission_start'],
             submission_due=config['submission_due'],
-            leaderboard_show=config['leaderboard_show']
+            leaderboard_show=config['leaderboard_show'],
+            submission_due_empty=config.get('submission_due_empty', False)
         )
 
         block.rubric_criteria = config['rubric_criteria']
@@ -1033,7 +1040,7 @@ class OpenAssessmentBlock(MessageMixin,
 
         # Resolve unspecified dates and date strings to datetimes
         start, due, date_ranges = resolve_dates(
-            self.start, self.due, [submission_range] + assessment_ranges, self._
+            self.start, self.due, [submission_range] + assessment_ranges, self._, self.submission_due_empty
         )
 
         open_range = (start, due)

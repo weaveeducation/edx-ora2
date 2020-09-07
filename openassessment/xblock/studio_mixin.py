@@ -20,7 +20,7 @@ from openassessment.xblock.data_conversion import (
     make_django_template_key,
     update_assessments_format
 )
-from openassessment.xblock.defaults import DEFAULT_EDITOR_ASSESSMENTS_ORDER, DEFAULT_RUBRIC_FEEDBACK_TEXT
+from openassessment.xblock.defaults import DEFAULT_EDITOR_ASSESSMENTS_ORDER, DEFAULT_RUBRIC_FEEDBACK_TEXT, DEFAULT_DUE
 from openassessment.xblock.resolve_dates import resolve_dates
 from openassessment.xblock.schema import EDITOR_UPDATE_SCHEMA
 from openassessment.xblock.validation import validator
@@ -119,7 +119,7 @@ class StudioMixin:
                 (asmnt.get('start'), asmnt.get('due'))
                 for asmnt in self.valid_assessments
             ],
-            self._
+            self._, self.submission_due_empty
         )
 
         submission_start, submission_due = date_ranges[0]
@@ -146,6 +146,7 @@ class StudioMixin:
             'title': self.title,
             'submission_due': submission_due,
             'submission_start': submission_start,
+            'submission_due_empty': self.submission_due_empty,
             'assessments': assessments,
             'criteria': criteria,
             'feedbackprompt': self.rubric_feedback_prompt,
@@ -188,7 +189,11 @@ class StudioMixin:
         # Validate and sanitize the data using a schema
         # If the data is invalid, this means something is wrong with
         # our JavaScript, so we log an exception.
+        submission_due_empty = False
         try:
+            if not data.get('submission_due'):
+                data['submission_due'] = DEFAULT_DUE
+                submission_due_empty = True
             data = EDITOR_UPDATE_SCHEMA(data)
         except MultipleInvalid:
             logger.exception('Editor context is invalid')
@@ -234,6 +239,7 @@ class StudioMixin:
             data['assessments'],
             submission_start=data['submission_start'],
             submission_due=data['submission_due'],
+            submission_due_empty=submission_due_empty,
             leaderboard_show=data['leaderboard_show']
         )
         if not success:
@@ -262,6 +268,7 @@ class StudioMixin:
             self.white_listed_file_types_string = None
         self.allow_latex = bool(data['allow_latex'])
         self.leaderboard_show = data['leaderboard_show']
+        self.submission_due_empty = submission_due_empty
         self.teams_enabled = bool(data.get('teams_enabled', False))
         self.selected_teamset_id = data.get('selected_teamset_id', '')
 

@@ -170,10 +170,11 @@ OpenAssessment.ToggleControl.prototype = {
  timePicker (string): The CSS selector for the time input field.
 
  **/
-OpenAssessment.DatetimeControl = function(element, datePicker, timePicker) {
+OpenAssessment.DatetimeControl = function(element, datePicker, timePicker, disabledValidation) {
     this.element = element;
     this.datePicker = datePicker;
     this.timePicker = timePicker;
+    this.disabledValidation = disabledValidation || false;
 };
 
 OpenAssessment.DatetimeControl.prototype = {
@@ -212,7 +213,12 @@ OpenAssessment.DatetimeControl.prototype = {
         var timePickerSel = $(this.timePicker, this.element);
         if (typeof(dateString) !== 'undefined') {datePickerSel.val(dateString);}
         if (typeof(timeString) !== 'undefined') {timePickerSel.val(timeString);}
-        return datePickerSel.val() + 'T' + timePickerSel.val();
+        var r1 = datePickerSel.val();
+        var r2 = timePickerSel.val();
+        if (r1 && r2) {
+            return r1 + "T" + r2;
+        }
+        return "";
     },
 
     /**
@@ -228,6 +234,10 @@ OpenAssessment.DatetimeControl.prototype = {
 
         // date validation
         var isDateValid = false;
+
+        if (this.disabledValidation) {
+            return true;
+        }
 
         try {
             var parsedDate = $.datepicker.parseDate($.datepicker.ISO_8601, dateString);

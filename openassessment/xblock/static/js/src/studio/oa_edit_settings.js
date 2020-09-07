@@ -26,7 +26,8 @@ OpenAssessment.EditSettingsView = function(element, assessmentViews, data) {
     this.dueDatetimeControl = new OpenAssessment.DatetimeControl(
         this.element,
         '#openassessment_submission_due_date',
-        '#openassessment_submission_due_time'
+        '#openassessment_submission_due_time',
+        true
     ).install();
 
     new OpenAssessment.SelectControl(
