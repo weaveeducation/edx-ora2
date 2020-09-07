@@ -35,27 +35,38 @@ class StaffAssessmentMixin:
         """
         Create a staff assessment from a staff submission.
         """
+        from submissions import api as submission_api
+
         if 'submission_uuid' not in data:
             return {
                 'success': False, 'msg': self._(u"The submission ID of the submission being assessed was not found.")
             }
 
         try:
-            assessment = staff_api.create_assessment(
-                data['submission_uuid'],
-                self.get_student_item_dict()["student_id"],
-                data['options_selected'],
-                clean_criterion_feedback(self.rubric_criteria, data['criterion_feedback']),
-                data['overall_feedback'],
-                create_rubric_dict(self.prompts, self.rubric_criteria_with_labels)
-            )
-            assess_type = data.get('assess_type', 'regrade')
-            self.publish_assessment_event("openassessmentblock.staff_assess", assessment, type=assess_type)
-            workflow_api.update_from_assessments(
-                assessment["submission_uuid"],
-                None,
-                override_submitter_requirements=(assess_type == 'regrade')
-            )
+            if len(self.rubric_criteria) > 0:
+                assessment = staff_api.create_assessment(
+                    data['submission_uuid'],
+                    self.get_student_item_dict()["student_id"],
+                    data['options_selected'],
+                    clean_criterion_feedback(self.rubric_criteria, data['criterion_feedback']),
+                    data['overall_feedback'],
+                    create_rubric_dict(self.prompts, self.rubric_criteria_with_labels)
+                )
+                assess_type = data.get('assess_type', 'regrade')
+
+                submission_dict = submission_api.get_submission(data['submission_uuid'])
+                if 'answer' in submission_dict:
+                    assessment['answer'] = submission_dict['answer'].copy()
+
+                self.publish_assessment_event("openassessmentblock.staff_assess", assessment, type=assess_type)
+                workflow_api.update_from_assessments(
+                    assessment["submission_uuid"],
+                    None,
+                    override_submitter_requirements=(assess_type == 'regrade')
+                )
+            else:
+                staff_api.close_without_assessment(data['submission_uuid'],
+                                                   self.get_student_item_dict()["student_id"])
 
         except StaffAssessmentRequestError:
             logger.warning(

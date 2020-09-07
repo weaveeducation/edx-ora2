@@ -390,6 +390,15 @@ def create_assessment(
 
 
 @transaction.atomic
+def close_without_assessment(submission_uuid, scorer_id):
+    try:
+        scorer_workflow = StaffWorkflow.objects.get(submission_uuid=submission_uuid)
+        scorer_workflow.close_active_assessment(None, scorer_id)
+    except StaffWorkflow.DoesNotExist:
+        pass
+
+
+@transaction.atomic
 def _complete_assessment(
         submission_uuid,
         scorer_id,

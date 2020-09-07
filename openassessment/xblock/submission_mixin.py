@@ -128,7 +128,22 @@ class SubmissionMixin:
                     submission = self.create_team_submission(student_sub_data)
                 else:
                     submission = self.create_submission(student_item_dict, student_sub_data)
-                return self._create_submission_response(submission)
+                resp = self._create_submission_response(submission)
+                if len(self.rubric_criteria) == 0 and not self.in_studio_preview:
+                    api.set_score(submission["uuid"], self.max_score(), self.max_score())
+
+                    try:
+                        from completion.models import BlockCompletion
+                        user_service = self.runtime.service(self, 'user')
+                        if user_service and hasattr(user_service, '_django_user'):
+                            BlockCompletion.objects.submit_completion(
+                                user=user_service._django_user,
+                                block_key=self.location,
+                                completion=1.0,
+                            )
+                    except ImportError:
+                        pass
+                return resp
 
             except api.SubmissionRequestError as err:
 
@@ -347,6 +362,7 @@ class SubmissionMixin:
                 "created_at": submission["created_at"],
                 "submitted_at": submission["submitted_at"],
                 "answer": submission["answer"],
+                "rubric_count": len(self.rubric_criteria)
             }
         )
 
@@ -698,6 +714,7 @@ class SubmissionMixin:
             "file_upload_response": self.file_upload_response,
             "prompts_type": self.prompts_type,
             "enable_delete_files": False,
+            "rubric_count": len(self.rubric_criteria)
         }
 
         # Due dates can default to the distant future, in which case

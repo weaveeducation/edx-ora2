@@ -130,8 +130,8 @@ class StudioMixin:
         # configured for the XBlock, return one empty default criterion, with
         # an empty default option.
         criteria = copy.deepcopy(self.rubric_criteria_with_labels)
-        if not criteria:
-            criteria = self.DEFAULT_CRITERIA
+        #if not criteria:
+        #    criteria = self.DEFAULT_CRITERIA
 
         # To maintain backwards compatibility, if there is no
         # feedback_default_text configured for the xblock, use the default text

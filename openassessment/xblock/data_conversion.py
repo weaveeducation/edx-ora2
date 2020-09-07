@@ -266,7 +266,7 @@ def verify_assessment_parameters(func):
         if 'options_selected' not in data:
             return {'success': False, 'msg': instance._('You must provide options selected in the assessment.')}
 
-        if 'overall_feedback' not in data:
+        if len(instance.rubric_criteria) > 0 and 'overall_feedback' not in data:
             return {'success': False, 'msg': instance._('You must provide overall feedback in the assessment.')}
 
         if 'criterion_feedback' not in data:

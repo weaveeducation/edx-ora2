@@ -71,7 +71,8 @@ update-npm-requirements: ## update NPM requrements
 
 javascript: update-npm-requirements ## Minify JavaScript source files
 	node_modules/.bin/uglifyjs $(STATIC_JS)/src/oa_shared.js $(STATIC_JS)/src/*.js $(STATIC_JS)/src/lms/*.js $(STATIC_JS)/lib/backgrid/backgrid.min.js > "$(STATIC_JS)/openassessment-lms.min.js"
-	node_modules/.bin/uglifyjs $(STATIC_JS)/src/oa_shared.js $(STATIC_JS)/src/*.js $(STATIC_JS)/src/studio/*.js $(STATIC_JS)/lib/backgrid/backgrid.min.js > "$(STATIC_JS)/openassessment-studio.min.js"
+	node_modules/.bin/uglifyjs $(STATIC_JS)/src/oa_shared.js $(STATIC_JS)/src/*.js $(STATIC_JS)/src/lms/*.js > "$(STATIC_JS)/openassessment-lms-author-view.min.js"
+	node_modules/.bin/uglifyjs $(STATIC_JS)/src/oa_shared.js $(STATIC_JS)/src/*.js $(STATIC_JS)/src/studio/*.js > "$(STATIC_JS)/openassessment-studio.min.js"
 
 sass: ## Compile SASS files
 	python scripts/compile_sass.py

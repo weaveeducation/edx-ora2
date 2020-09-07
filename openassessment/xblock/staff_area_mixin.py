@@ -279,6 +279,7 @@ class StaffAreaMixin:
         context = {
             'submission': create_submission_dict(submission, self.prompts) if submission else None,
             'rubric_criteria': copy.deepcopy(self.rubric_criteria_with_labels),
+            'rubric_count': len(self.rubric_criteria),
             'student_username': student_username,
             'user_timezone': user_preferences['user_timezone'],
             'user_language': user_preferences['user_language'],

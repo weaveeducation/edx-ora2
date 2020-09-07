@@ -50,7 +50,10 @@ class StudentTrainingMixin:
 
         """
         if "student-training" not in self.assessment_steps:
-            return Response(u"")
+            return Response("")
+
+        if len(self.rubric_criteria) == 0:
+            return Response("")
 
         try:
             path, context = self.training_path_and_context()

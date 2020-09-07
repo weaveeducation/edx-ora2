@@ -338,14 +338,15 @@ def validator(oa_block, _, strict_post_release=True):
             'prompts': oa_block.prompts,
             'criteria': oa_block.rubric_criteria
         }
-        success, msg = validate_rubric(rubric_dict, current_rubric, is_released, _)
-        if not success:
-            return False, msg
+        if rubric_dict.get('criteria', None):
+            success, msg = validate_rubric(rubric_dict, current_rubric, is_released, _)
+            if not success:
+                return False, msg
 
-        # Training examples
-        success, msg = validate_assessment_examples(rubric_dict, assessments, _)
-        if not success:
-            return False, msg
+            # Training examples
+            success, msg = validate_assessment_examples(rubric_dict, assessments, _)
+            if not success:
+                return False, msg
 
         # Dates
         submission_dates = [(submission_start, submission_due)]

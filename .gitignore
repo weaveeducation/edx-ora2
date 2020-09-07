@@ -83,6 +83,7 @@ logs/*.log*
 
 # virtualenvs
 edx-ora2/
+venv3/
 
 # private Django settings
 private.py
