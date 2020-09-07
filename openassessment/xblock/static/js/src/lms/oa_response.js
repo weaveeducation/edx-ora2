@@ -836,8 +836,8 @@ OpenAssessment.ResponseView.prototype = {
         var fileNames = [];
         var fileMetaData = [];
 
-        for (var i = 0; i < this.files.length; i++) {
-            fileNames.push(this.files[i].name);
+        for (var j = 0; j < this.files.length; j++) {
+            fileNames.push(this.files[j].name);
         }
 
         for (var i=0; i < this.filesDescriptions.length; i++) {

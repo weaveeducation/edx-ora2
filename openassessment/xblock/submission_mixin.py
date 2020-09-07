@@ -66,6 +66,20 @@ class SubmissionMixin:
         'htm', 'html',
     ]
 
+    FILE_EXT_TO_CONTENT_TYPE = {
+        'doc': 'application/msword',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls': 'application/vnd.ms-excel',
+        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'ppt': 'application/vnd.ms-powerpoint',
+        'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'pdf': 'application/pdf',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'gif': 'image/gif',
+        'png': 'image/png',
+    }
+
     @cached_property
     def file_manager(self):
         return file_upload_api.FileUploadManager(self)
@@ -442,20 +456,6 @@ class SubmissionMixin:
 
         file_ext = file_name_parts[-1] if len(file_name_parts) > 1 else None
 
-        file_ext_to_content_type = {
-            'doc': 'application/msword',
-            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'xls': 'application/vnd.ms-excel',
-            'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'ppt': 'application/vnd.ms-powerpoint',
-            'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            'pdf': 'application/pdf',
-            'jpg': 'image/jpeg',
-            'jpeg': 'image/jpeg',
-            'gif': 'image/gif',
-            'png': 'image/png',
-        }
-
         if self.file_upload_type == 'image' and content_type not in self.ALLOWED_IMAGE_MIME_TYPES:
             return {'success': False, 'msg': self._(u"Content type must be GIF, PNG or JPG.")}
 
@@ -466,8 +466,8 @@ class SubmissionMixin:
             return {'success': False, 'msg': self._(u"File type must be one of the following types: {}").format(
                 ', '.join(self.white_listed_file_types))}
 
-        if self.file_upload_type == 'custom' and not content_type and file_ext.lower() in file_ext_to_content_type:
-            content_type = file_ext_to_content_type[file_ext.lower()]
+        if self.file_upload_type == 'custom' and not content_type and file_ext.lower() in self.FILE_EXT_TO_CONTENT_TYPE:
+            content_type = self.FILE_EXT_TO_CONTENT_TYPE[file_ext.lower()]
 
         if file_ext in self.FILE_EXT_BLACK_LIST:
             return {'success': False, 'msg': self._(u"File type is not allowed.")}
