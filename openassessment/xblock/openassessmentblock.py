@@ -1167,7 +1167,7 @@ class OpenAssessmentBlock(MessageMixin,
             option_dict = None
             if part["option"] is not None:
                 option_dict = {
-                    "name": part["option"]["label"] if part["option"]["name"].isdigit() else part["option"]["name"],
+                    "name": part["option"].get("label") or part["option"]["name"],
                     "points": part["option"]["points"],
                 }
 
