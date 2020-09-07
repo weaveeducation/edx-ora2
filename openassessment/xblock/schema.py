@@ -148,6 +148,8 @@ EDITOR_UPDATE_SCHEMA = Schema({
             Required('name'): utf8_validator,
             Required('label'): utf8_validator,
             Required('prompt'): utf8_validator,
+            Required('use_grading_key'): bool,
+            Required('grading_key'): All(int, Range(min=1)),
             Required('feedback'): All(
                 utf8_validator,
                 In([

@@ -155,11 +155,17 @@ def _serialize_criteria(criteria_root, criteria_list):
 
         # Criterion label (default to the name, then an empty string)
         criterion_label = etree.SubElement(criterion_el, 'label')
-        criterion_label.text = six.text_type(criterion.get('label', criterion.get('name', u'')))
+        criterion_label.text = six.text_type(criterion.get('label', criterion.get('name', '')))
 
         # Criterion prompt (default to empty string)
         criterion_prompt = etree.SubElement(criterion_el, 'prompt')
-        criterion_prompt.text = six.text_type(criterion.get('prompt', u''))
+        criterion_prompt.text = six.text_type(criterion.get('prompt', ''))
+
+        criterion_use_grading_key = etree.SubElement(criterion_el, 'use_grading_key')
+        criterion_use_grading_key.text = six.text_type(criterion.get('use_grading_key', 'False'))
+
+        criterion_grading_key = etree.SubElement(criterion_el, 'grading_key')
+        criterion_grading_key.text = six.text_type(criterion.get('grading_key', '0'))
 
         # Criterion feedback disabled, optional, or required
         # If disabled, do not set the attribute.
@@ -415,6 +421,14 @@ def _parse_criteria_xml(criteria_root):
             raise UpdateFromXmlError(
                 'Invalid value for "feedback" attribute: if specified, it must be set set to "optional" or "required".'
             )
+
+        criterion_use_grading_key = criterion.find('use_grading_key')
+        if criterion_use_grading_key is not None:
+            criterion_dict['use_grading_key'] = _parse_boolean(criterion_use_grading_key.text)
+
+        criterion_grading_key = criterion.find('grading_key')
+        if criterion_grading_key is not None:
+            criterion_dict['grading_key'] = int(criterion_grading_key.text)
 
         # Criterion options
         criterion_dict['options'] = _parse_options_xml(criterion)

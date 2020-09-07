@@ -9,9 +9,25 @@ Returns:
 **/
 OpenAssessment.Rubric = function(element) {
     this.element = element;
+    this.initNumberInputFields();
 };
 
 OpenAssessment.Rubric.prototype = {
+    initNumberInputFields: function() {
+        $('input[type=number]', this.element).each(function() {
+            $(this).focusout(function() {
+                var val = $(this).val();
+                var maxVal = parseInt($(this).data('max'), 10);
+                if (parseInt(val, 10) < 0) {
+                    $(this).val(0);
+                }
+                if (parseInt(val, 10) > maxVal) {
+                    $(this).val(maxVal);
+                }
+            });
+        });
+    },
+
     /**
     Get or set per-criterion feedback.
 
@@ -96,6 +112,11 @@ OpenAssessment.Rubric.prototype = {
                     options[rubric.getCriterionName(sel)] = sel.value;
                 }
             );
+            $("input[type=number]", this.element).each(
+                function() {
+                    options[rubric.getCriterionName($(this))] = $(this).val().toString();
+                }
+            );
             return options;
         } else {
             // Uncheck all the options
@@ -144,6 +165,11 @@ OpenAssessment.Rubric.prototype = {
     **/
     canSubmit: function() {
         var numChecked = $('input[type=radio]:checked', this.element).length;
+        $('input[type=number]', this.element).each(function() {
+            if ($(this).val() != '') {
+                numChecked = numChecked + 1;
+            }
+        });
         var numAvailable = $('.field--radio.assessment__rubric__question.has--options', this.element).length;
         var completedRequiredComments = true;
         $('textarea[required]', this.element).each(function() {

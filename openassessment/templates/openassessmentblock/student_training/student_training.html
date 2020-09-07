@@ -106,7 +106,25 @@
                                                 <p>{% trans "The option you selected is not the option that the instructor selected." %}</p>
                                             </div>
                                         </div>
-                                        <div class="question__answers" role="group" aria-labelledby="training__assessment__rubric__prompt--{{ criterion.order_num }}__{{ xblock_id }}">
+                                        <div class="question__answers" role="group" aria-labelledby="training__assessment__rubric__prompt--{{ criterion.order_num }}__{{ xblock_id }}"
+                                        data-use-grading-key="{% if criterion.use_grading_key %}1{% else %}0{% endif%}">
+                                        {% if criterion.use_grading_key %}
+                                        <div class="answer">
+                                            <div class="wrapper--input">
+                                            <label for="training__assessment__rubric__question--{{ criterion.name }}">
+                                                Enter value from 0 to {{ criterion.grading_key }}:</label>
+                                            <input class="openassessment_criterion_grading_key_number input setting-input"
+                                                   type="number"
+                                                   data-max="{{ criterion.grading_key }}"
+                                                   data-criterion-name="{{ criterion.name }}"
+                                                   name="training__assessment__rubric__question--{{ criterion.name }}"
+                                                   id="training__assessment__rubric__question--{{ criterion.name }}"
+                                                   value=""
+                                                   min="0"
+                                                   max="{{ criterion.grading_key }}">
+                                            </div>
+                                         </div>
+                                        {% else %}
                                         {% for option in criterion.options %}
                                             <div class="answer">
                                                 <div class="wrapper--input">
@@ -127,6 +145,7 @@
                                                 </div>
                                             </div>
                                         {% endfor %}
+                                        {% endif %}
                                         </div>
                                     </div>
                                 </li>
