@@ -187,6 +187,9 @@
 
                 <ul class="list list--actions">
                     <li class="list--actions__item">
+                        {% if turnitin_eula %}
+                        With pushing "Submit" button you automatically agree with <a href="{{ turnitin_eula }}" target="_blank">EULA</a>
+                        {% endif %}
                         <button type="submit" class="action action--submit step--response__submit"
                                 text_response="{{text_response}}"
                                 file_upload_response="{{file_upload_response}}"
@@ -204,4 +207,7 @@
     </div>
     {% endblock %}
 </li>
+
+{% block turnitin %}
+{% endblock %}
 {% endspaceless %}

@@ -745,6 +745,12 @@ def serialize_content_to_xml(oa_block, root):
     if oa_block.allow_latex is not None:
         root.set('allow_latex', six.text_type(oa_block.allow_latex))
 
+    if oa_block.turnitin_enabled is not None:
+        root.set('turnitin_enabled', six.text_type(oa_block.turnitin_enabled))
+
+    if oa_block.turnitin_config:
+        root.set('turnitin_config', six.text_type(json.dumps(oa_block.turnitin_config)))
+
     # Set group access setting if not empty
     if oa_block.group_access:
         root.set('group_access', json.dumps(GroupAccessDict().to_json(oa_block.group_access)))
@@ -907,6 +913,15 @@ def parse_from_xml(root):
     if 'allow_latex' in root.attrib:
         allow_latex = _parse_boolean(six.text_type(root.attrib['allow_latex']))
 
+    turnitin_enabled = False
+    if 'turnitin_enabled' in root.attrib:
+        turnitin_enabled = _parse_boolean(six.text_type(root.attrib['turnitin_enabled']))
+
+    turnitin_config = {}
+    if 'turnitin_config' in root.attrib:
+        turnitin_config = six.text_type(root.attrib['turnitin_config'])
+        if turnitin_config:
+            turnitin_config = json.loads(turnitin_config)
     group_access = {}
     if 'group_access' in root.attrib:
         group_access = GroupAccessDict().from_json(json.loads(root.attrib['group_access']))
@@ -964,6 +979,8 @@ def parse_from_xml(root):
         'file_upload_type': file_upload_type,
         'white_listed_file_types': white_listed_file_types,
         'allow_latex': allow_latex,
+        'turnitin_enabled': turnitin_enabled,
+        'turnitin_config': turnitin_config,
         'group_access': group_access,
         'leaderboard_show': leaderboard_show
     }

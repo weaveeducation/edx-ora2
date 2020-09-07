@@ -46,6 +46,22 @@ OpenAssessment.EditSettingsView = function(element, assessmentViews, data) {
     ).install();
 
     new OpenAssessment.SelectControl(
+        $("#openassessment_turnitin_enabled_editor", this.element),
+        function(selectedValue) {
+            $(".turnitin-setting", self.element).each(function(idx, el) {
+                if (parseInt(selectedValue) === 1) {
+                    $(el).removeClass('is--hidden');
+                } else {
+                    $(el).addClass('is--hidden');
+                }
+            });
+        },
+        new OpenAssessment.Notifier([
+            new OpenAssessment.AssessmentToggleListener()
+        ])
+    ).install();
+
+    new OpenAssessment.SelectControl(
         $('#openassessment_submission_upload_selector', this.element),
         {'custom': $('#openassessment_submission_white_listed_file_types_wrapper', this.element)},
         new OpenAssessment.Notifier([
@@ -312,6 +328,43 @@ OpenAssessment.EditSettingsView.prototype = {
     latexEnabled: function(isEnabled) {
         return this.settingSelectorEnabled('#openassessment_submission_latex_editor', isEnabled);
     },
+
+    turnitinEnabled: function(isEnabled) {
+        var sel = $('#openassessment_turnitin_enabled_editor', this.settingsElement);
+        if (sel.length === 0) {
+            return false;
+        }
+        if (isEnabled !== undefined) {
+            if (isEnabled) {
+                sel.val(1);
+            } else {
+                sel.val(0);
+            }
+        }
+        return parseInt(sel.val()) === 1;
+    },
+
+    turnitinSettings: function() {
+        var sel = $('#openassessment_turnitin_enabled_editor', this.settingsElement);
+        if (sel.length === 0) {
+            return {};
+        }
+        if (parseInt(sel.val()) === 1) {
+            var sel1 = $('#openassessment_turnitin_display_score_editor', this.settingsElement);
+            var sel2 = $('#openassessment_turnitin_display_link_editor', this.settingsElement);
+            var sel3 = $('#openassessment_turnitin_add_to_index_editor', this.settingsElement);
+            var sel4 = $('#openassessment_turnitin_auto_exclude_self_matching_scope_editor', this.settingsElement);
+            return {
+                display_score: parseInt(sel1.val()) === 1,
+                display_link: parseInt(sel2.val()) === 1,
+                add_to_index: parseInt(sel3.val()) === 1,
+                auto_exclude_self_matching_scope: parseInt(sel4.val()) === 1
+            };
+        }
+
+        return {};
+    },
+
     /**
     Enable/disable team assignments.
 

@@ -113,6 +113,8 @@ EDITOR_UPDATE_SCHEMA = Schema({
     Required('file_upload_type', default=None): Any(All(utf8_validator, In(VALID_UPLOAD_FILE_TYPES)), None),
     'white_listed_file_types': utf8_validator,
     Required('allow_latex'): bool,
+    Required('turnitin_enabled'): bool,
+    Required('turnitin_config'): dict,
     Required('leaderboard_show'): int,
     Optional('teams_enabled'): bool,
     Optional('selected_teamset_id'): utf8_validator,

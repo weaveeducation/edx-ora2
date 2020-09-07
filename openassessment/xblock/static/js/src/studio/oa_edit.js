@@ -207,6 +207,8 @@ OpenAssessment.StudioView.prototype = {
             fileTypeWhiteList: view.settingsView.fileTypeWhiteList(),
             latexEnabled: view.settingsView.latexEnabled(),
             leaderboardNum: view.settingsView.leaderboardNum(),
+            turnitinEnabled: view.settingsView.turnitinEnabled(),
+            turnitinConfig: view.settingsView.turnitinSettings(),
             editorAssessmentsOrder: view.settingsView.editorAssessmentsOrder(),
             teamsEnabled: view.settingsView.teamsEnabled(),
             selectedTeamsetId: view.settingsView.teamset(),

@@ -6,6 +6,7 @@ import logging
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.functional import cached_property
+from django.urls import reverse
 import six
 
 from openassessment.fileupload import api as file_upload_api
@@ -18,11 +19,17 @@ from .data_conversion import create_submission_dict, prepare_submission_for_seri
 from .resolve_dates import DISTANT_FUTURE
 from .user_data import get_user_preferences
 from .validation import validate_submission
+from turnitin_integration.service import get_submissions_status as get_turnitin_submissions_status,\
+    create_submissions as turnitin_create_submissions, get_turnitin_key
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
 class NoTeamToCreateSubmissionForError(Exception):
+    pass
+
+
+class RequiredFilesAbsent(Exception):
     pass
 
 
@@ -124,11 +131,18 @@ class SubmissionMixin:
             try:
 
                 # a submission for a team generates matching submissions for all members
-                if self.is_team_assignment():
-                    submission = self.create_team_submission(student_sub_data)
-                else:
-                    submission = self.create_submission(student_item_dict, student_sub_data)
-                resp = self._create_submission_response(submission)
+                try:
+                    if self.is_team_assignment():
+                        submission = self.create_team_submission(student_sub_data)
+                    else:
+                        submission = self.create_submission(student_item_dict, student_sub_data)
+                    resp = self._create_submission_response(submission)
+                except RequiredFilesAbsent:
+                    return (
+                        False,
+                        'EBADARGS',
+                        "Required files are absent"
+                    )
                 if len(self.rubric_criteria) == 0 and not self.in_studio_preview:
                     api.set_score(submission["uuid"], self.max_score(), self.max_score())
 
@@ -250,6 +264,9 @@ class SubmissionMixin:
         """
         failure_response = {'success': False, 'msg': self._(u"Files descriptions were not submitted.")}
 
+        if 'file_names' in data:
+            self.saved_file_names = json.dumps(data['file_names'])
+
         if 'fileMetadata' not in data:
             return failure_response
 
@@ -352,6 +369,10 @@ class SubmissionMixin:
         self.create_workflow(submission["uuid"])
         self.submission_uuid = submission["uuid"]
 
+        if self.check_turnitin_enabled_in_org() and self.turnitin_enabled:
+            turnitin_create_submissions(submission["uuid"], self.get_student_item_dict(),
+                                        student_sub_data, self.saved_file_names)
+
         # Emit analytics event...
         self.runtime.publish(
             self,
@@ -387,6 +408,9 @@ class SubmissionMixin:
             student_sub_dict['files_descriptions'].append(upload.description)
             student_sub_dict['files_names'].append(upload.name)
             student_sub_dict['files_sizes'].append(upload.size)
+
+        if self.file_upload_response == 'required' and not student_sub_dict['file_keys']:
+            raise RequiredFilesAbsent("Required files absent")
 
         return student_sub_dict
 
@@ -784,6 +808,12 @@ class SubmissionMixin:
                     and not self.saved_response and not file_urls:
                 submit_enabled = False
             context['submit_enabled'] = submit_enabled
+            context['turnitin_eula'] = None
+
+            if self.check_turnitin_enabled_in_org() and self.turnitin_enabled:
+                turnitin_key = get_turnitin_key(self.location.course_key.org)
+                context['turnitin_eula'] = reverse('turnitin_eula',
+                                                   kwargs={'api_key_id': turnitin_key.id}) if turnitin_key else None
             path = "openassessmentblock/response/oa_response.html"
         elif workflow["status"] == "cancelled":
             context["workflow_cancellation"] = self.get_workflow_cancellation_info(self.submission_uuid)
@@ -806,6 +836,18 @@ class SubmissionMixin:
             context["peer_incomplete"] = peer_in_workflow and not workflow["status_details"]["peer"]["complete"]
             context["self_incomplete"] = self_in_workflow and not workflow["status_details"]["self"]["complete"]
             context["student_submission"] = create_submission_dict(student_submission, self.prompts)
+
+            turnitin_enabled = self.check_turnitin_enabled_in_org() and self.turnitin_enabled
+            context["turnitin_enabled"] = turnitin_enabled
+
+            if turnitin_enabled:
+                context["turnitin_data"] = get_turnitin_submissions_status(
+                    workflow["submission_uuid"], self.turnitin_config.get('display_score', True))
+                context['turnitin_display_link'] = self.turnitin_config.get('display_link', True)
+            else:
+                context["turnitin_data"] = None
+                context['turnitin_display_link'] = None
+
             path = 'openassessmentblock/response/oa_response_submitted.html'
 
         return path, context

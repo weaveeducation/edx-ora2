@@ -26,6 +26,7 @@
 
                     {% trans "Associated Files" as translated_header %}
                     {% include "openassessmentblock/oa_uploaded_file.html" with file_upload_type=file_upload_type file_urls=staff_file_urls header=translated_header class_prefix="staff-assessment" show_warning="true" including_template="staff_override_assessment" xblock_id=xblock_id %}
+                    {% include "openassessmentblock/oa_turnitin_files.html" with turnitin_enabled=turnitin_enabled turnitin_data=turnitin_data display_header=True %}
                 </div>
 
                 <form class="staff-assessment__assessment" method="post">

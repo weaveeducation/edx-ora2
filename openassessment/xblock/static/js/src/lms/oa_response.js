@@ -90,6 +90,11 @@ OpenAssessment.ResponseView.prototype = {
         // Install a click handler for collapse/expand
         this.baseView.setUpCollapseExpand(sel);
 
+        var turnitinBlock = $('.step--turnitin', this.element);
+        if (turnitinBlock.length > 0) {
+            this.baseView.setUpCollapseExpand(turnitinBlock);
+        }
+
         // Install change handler for textarea (to enable submission button)
         this.savedResponse = this.response();
         var handleChange = function() {view.handleResponseChanged();};
@@ -828,7 +833,13 @@ OpenAssessment.ResponseView.prototype = {
     saveFilesDescriptions: function() {
         var view = this;
         var sel = $('.step--response', this.element);
+        var fileNames = [];
         var fileMetaData = [];
+
+        for (var i = 0; i < this.files.length; i++) {
+            fileNames.push(this.files[i].name);
+        }
+
         for (var i=0; i < this.filesDescriptions.length; i++) {
             this.fileNames.push(this.files[i].name);
             var entry = {
@@ -838,7 +849,7 @@ OpenAssessment.ResponseView.prototype = {
             };
             fileMetaData.push(entry);
         }
-        return this.server.saveFilesDescriptions(fileMetaData).done(
+        return this.server.saveFilesDescriptions(fileMetaData, fileNames).done(
             function() {
                 view.removeFilesDescriptions();
             }

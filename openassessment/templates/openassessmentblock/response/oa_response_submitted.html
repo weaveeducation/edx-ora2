@@ -64,3 +64,31 @@
     </div>
 </div>
 {% endblock %}
+
+{% block turnitin %}
+{% if turnitin_enabled %}
+<li id="openassessment__response__{{ xblock_id }}"
+    class="openassessment__steps__step step--turnitin {{ turnitin_data.css_class }} ui-slidable__container is--showing"
+    tabindex="-1">
+    <header class="step__header ui-slidable__control">
+        <span>
+            <button class="ui-slidable" aria-expanded="true" id="oa_response_{{ xblock_id }}" aria-controls="oa_response_{{ xblock_id }}_content" aria-labeledby="oa_step_title_response">
+            <span class="icon fa fa-caret-right" aria-hidden="false"></span>
+            </button>
+        </span>
+        <span>
+            <h4 class="step__title">
+                <span class="wrapper--copy" style="margin-left: 0; border-left: none; padding-left: 0;">
+                <span class="step__label">Turnitin Check</span>
+                </span>
+            </h4>
+        </span>
+    </header>
+    <div class="ui-slidable__content" aria-labelledby="oa_turnitin_{{ xblock_id }}" id="oa_turnitin_{{ xblock_id }}_content">
+        <div class="wrapper--step__content">
+            {% include "openassessmentblock/oa_turnitin_files.html" with turnitin_enabled=turnitin_enabled turnitin_data=turnitin_data display_header=False %}
+        </div>
+    </div>
+</li>
+{% endif %}
+{% endblock %}
