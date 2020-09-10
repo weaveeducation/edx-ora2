@@ -384,8 +384,7 @@ class SubmissionMixin:
         self.submission_uuid = submission["uuid"]
 
         if self.check_turnitin_enabled_in_org() and self.turnitin_enabled:
-            turnitin_create_submissions(submission["uuid"], self.get_student_item_dict(),
-                                        student_sub_data, self.saved_file_names)
+            turnitin_create_submissions(submission["uuid"], self.get_student_item_dict(), submission["answer"])
 
         # Emit analytics event...
         self.runtime.publish(
