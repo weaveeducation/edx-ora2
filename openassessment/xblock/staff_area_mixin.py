@@ -294,13 +294,15 @@ class StaffAreaMixin:
                 'user_id': student.user.id
             }
 
+        new_result = {}
         for uuid_key, res in result.items():
-            res.update(students_data[res['student_id']])
-            result[uuid_key] = res
+            if res['student_id'] in students_data:
+                res.update(students_data[res['student_id']])
+                new_result[uuid_key] = res.copy()
 
-        result = result.values()
+        new_result = new_result.values()
 
-        return {'result': sorted(result, key=lambda k: k['username'])}
+        return {'result': sorted(new_result, key=lambda k: k['username'])}
 
     def get_student_submission_context(self, student_username, submission):
         """
