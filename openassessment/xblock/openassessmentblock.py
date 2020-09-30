@@ -44,6 +44,7 @@ from xblock.exceptions import NoSuchServiceError
 from xblock.fields import Boolean, Integer, List, Scope, String, Dict
 from web_fragments.fragment import Fragment
 from turnitin_integration.service import get_turnitin_key
+from django.utils.html import strip_tags
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -1175,6 +1176,19 @@ class OpenAssessmentBlock(MessageMixin,
             if assessment["name"] == mixin_name:
                 return assessment
 
+    def get_event_prompts(self):
+        prompts = []
+        for pr in self.prompts:
+            description = pr.get('description', '')
+            if description is None:
+                description = '-'
+            description = strip_tags(description)
+            description = description.strip().replace('|', '')
+            if len(description) > 5000:
+                description = '-too-long-html-'
+            prompts.append({'description': description})
+        return prompts
+
     def publish_assessment_event(self, event_name, assessment, **kwargs):
         """
         Emit an analytics event for the peer assessment.
@@ -1222,7 +1236,7 @@ class OpenAssessmentBlock(MessageMixin,
             "scored_at": assessment["scored_at"],
             "submission_uuid": assessment["submission_uuid"],
             "parts": parts_list,
-            "prompts": self.prompts,
+            "prompts": self.get_event_prompts(),
             "answer": assessment.get("answer", {})
         }
 
