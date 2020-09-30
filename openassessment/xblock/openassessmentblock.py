@@ -16,6 +16,7 @@ from xblock.fragment import Fragment
 
 from django.conf import settings
 from django.template.loader import get_template
+from django.utils.html import strip_tags
 
 from openassessment.workflow.errors import AssessmentWorkflowError
 from openassessment.xblock.course_items_listing_mixin import CourseItemsListingMixin
@@ -1072,6 +1073,19 @@ class OpenAssessmentBlock(MessageMixin,
             if assessment["name"] == mixin_name:
                 return assessment
 
+    def get_event_prompts(self):
+        prompts = []
+        for pr in self.prompts:
+            description = pr.get('description', '')
+            if description is None:
+                description = '-'
+            description = strip_tags(description)
+            description = description.strip().replace('|', '')
+            if len(description) > 5000:
+                description = '-too-long-html-'
+            prompts.append({'description': description})
+        return prompts
+
     def publish_assessment_event(self, event_name, assessment, **kwargs):
         """
         Emit an analytics event for the peer assessment.
@@ -1119,7 +1133,7 @@ class OpenAssessmentBlock(MessageMixin,
             "scored_at": assessment["scored_at"],
             "submission_uuid": assessment["submission_uuid"],
             "parts": parts_list,
-            "prompts": self.prompts,
+            "prompts": self.get_event_prompts(),
             "answer": assessment.get("answer", {})
         }
 
