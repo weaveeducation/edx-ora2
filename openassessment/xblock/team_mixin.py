@@ -50,7 +50,7 @@ class TeamMixin:
         anonymous_user_id = self.get_anonymous_user_id_from_xmodule_runtime()
         user = self.get_real_user(anonymous_user_id)
         if not user:
-            logger.error(u'{}: User lookup for anonymous_user_id {} failed'.format(self.location, anonymous_user_id))
+            #logger.error(u'{}: User lookup for anonymous_user_id {} failed'.format(self.location, anonymous_user_id))
             raise ObjectDoesNotExist()
         team = self.teams_service.get_team(user, self.course_id, self.selected_teamset_id)
         return team
