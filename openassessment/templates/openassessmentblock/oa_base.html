@@ -1,10 +1,14 @@
 {% load i18n %}
 {% spaceless %}
-<div class="wrapper wrapper--xblock wrapper--openassessment theme--basic">
+<div class="wrapper wrapper--xblock wrapper--openassessment theme--basic {% if block_unique_id %}{{ block_unique_id }}{% endif %}">
     <div class="openassessment problem">
         <div class="wrapper--grid">
             {% if title %}
-                <h3 class="openassessment__title problem__header">{% trans title %}</h3>
+                <h3 class="openassessment__title problem__header"
+                    data-is-additional-rubric="{% if is_additional_rubric %}1{% else %}0{% endif %}"
+                    data-support-multiple-rubrics="{% if support_multiple_rubrics %}1{% else %}0{% endif %}"
+                    data-source-block-unique-id="{{ source_block_unique_id }}"
+                    data-submission-uuid="{% if submission_uuid %}{{ submission_uuid }}{% endif %}">{% trans title %}</h3>
             {% endif %}
 
             <div class="wrapper-openassessment__message">
@@ -12,11 +16,27 @@
                 {% block message %}
                 {% if rubric_count == 0 %}
                 {% else %}
-                <div class="openassessment__message message">
-                    <div class="message__content">
-                        <p>{% trans "This assignment has several steps. In the first step, you'll provide a response to the prompt. The other steps appear below the Your Response field." %}</p>
+                    {% if is_additional_rubric %}
+                    {% if is_studio %}
+                    <div class="openassessment__message message">
+                        {% if parent_block %}
+                        <div class="message__content">
+                            <p style="font-weight: bold;">Parent ORA block: {{ parent_block.display_name }}</p>
+                        </div>
+                        {% else %}
+                        <div class="message__content">
+                            <p style="color: red;">Parent ORA block is not set</p>
+                        </div>
+                        {% endif %}
                     </div>
-                </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="openassessment__message message">
+                        <div class="message__content">
+                            <p>{% trans "This assignment has several steps. In the first step, you'll provide a response to the prompt. The other steps appear below the Your Response field." %}</p>
+                        </div>
+                    </div>
+                    {% endif %}
                 {% endif %}
                 {% endblock %}
             </div>

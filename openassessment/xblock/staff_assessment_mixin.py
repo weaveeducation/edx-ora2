@@ -7,6 +7,7 @@ import logging
 
 from openassessment.assessment.api import staff as staff_api
 from openassessment.assessment.errors import StaffAssessmentInternalError, StaffAssessmentRequestError
+from openassessment.assessment.models import StaffWorkflow
 from openassessment.workflow import api as workflow_api
 from xblock.core import XBlock
 
@@ -100,11 +101,29 @@ class StaffAssessmentMixin:
 
         return self.render_assessment(path, context_dict)
 
+    def get_scorer_name(self, submission_uuid):
+        from student.models import AnonymousUserId
+        scorer_name = None
+        if submission_uuid:
+            staff_workflow = StaffWorkflow.objects.get(submission_uuid=submission_uuid)
+            anon_user = AnonymousUserId.objects.select_related('user').filter(
+                course_id=self.location.course_key, anonymous_user_id=staff_workflow.scorer_id).first()
+            if anon_user:
+                scorer = anon_user.user
+                scorer_name = scorer.first_name + ' ' + scorer.last_name
+                scorer_name = scorer_name.strip()
+                if scorer_name:
+                    scorer_name = scorer_name + ', ' + scorer.email
+                else:
+                    scorer_name = scorer.email
+        return scorer_name
+
     def staff_path_and_context(self):
         """
         Retrieve the correct template path and template context for the handler to render.
         """
         workflow = self.get_workflow_info()
+
         status = workflow.get('status')
         path = 'openassessmentblock/staff/oa_staff_grade.html'
         not_available_context = {
@@ -112,6 +131,7 @@ class StaffAssessmentMixin:
             'button_active': 'disabled=disabled aria-expanded=false',
             'step_classes': 'is--unavailable',
         }
+        scorer_name = None
 
         if status == 'cancelled':
             context = {
@@ -121,6 +141,8 @@ class StaffAssessmentMixin:
                 'button_active': 'disabled=disabled aria-expanded=false',
             }
         elif status == 'done':  # Staff grade exists and all steps completed.
+            submission_uuid = workflow.get('submission_uuid')
+            scorer_name = self.get_scorer_name(submission_uuid)
             context = {
                 'status_value': self._('Complete'),
                 'icon_class': 'fa-check',
@@ -157,5 +179,6 @@ class StaffAssessmentMixin:
             else:  # Both student and staff still have work to do, just show "Not Available".
                 context = not_available_context
 
+        context['scorer_name'] = scorer_name
         context['xblock_id'] = self.get_xblock_id()
         return path, context

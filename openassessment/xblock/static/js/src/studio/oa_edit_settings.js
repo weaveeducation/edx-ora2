@@ -13,6 +13,7 @@ Returns:
 OpenAssessment.EditSettingsView = function(element, assessmentViews, data) {
     var self = this;
     this.settingsElement = element;
+    this.isAdditionalRubric = $(this.settingsElement).data('is-additional-rubric') === 'True';
     this.assessmentsElement = $(element).siblings('#openassessment_assessment_module_settings_editors').get(0);
     this.assessmentViews = assessmentViews;
 
@@ -365,6 +366,38 @@ OpenAssessment.EditSettingsView.prototype = {
         return {};
     },
 
+    getUngraded: function() {
+        var sel = $('#openassessment_ungraded_editor', this.settingsElement);
+        if (sel.length === 0) {
+            return false;
+        }
+        return parseInt(sel.val()) === 1;
+    },
+
+    displayRubricStepToStudents: function() {
+        var sel = $('#openassessment_display_rubric_step_to_students_editor', this.settingsElement);
+        if (sel.length === 0) {
+            return false;
+        }
+        return parseInt(sel.val()) === 1;
+    },
+
+    displayGrader: function() {
+        var sel = $('#openassessment_display_grader_editor', this.settingsElement);
+        if (sel.length === 0) {
+            return false;
+        }
+        return parseInt(sel.val()) === 1;
+    },
+
+    supportMultipleRubrics: function() {
+        var sel = $('#openassessment_support_multiple_rubrics_editor', this.settingsElement);
+        if (sel.length === 0) {
+            return false;
+        }
+        return parseInt(sel.val()) === 1;
+    },
+
     /**
     Enable/disable team assignments.
 
@@ -434,6 +467,10 @@ OpenAssessment.EditSettingsView.prototype = {
 
     **/
     leaderboardNum: function(num) {
+        if (this.isAdditionalRubric) {
+            return 0;
+        }
+
         if (num !== undefined) {
             this.leaderboardIntField.set(num);
         }
@@ -517,16 +554,18 @@ OpenAssessment.EditSettingsView.prototype = {
         // Validate the start and due datetime controls
         var isValid = true;
 
-        isValid = (this.startDatetimeControl.validate() && isValid);
-        isValid = (this.dueDatetimeControl.validate() && isValid);
-        isValid = (this.leaderboardIntField.validate() && isValid);
-        if (this.fileUploadType() === 'custom') {
-            isValid = (this.fileTypeWhiteListInputField.validate() && isValid);
-        } else {
-            // we want to keep the valid white list in case author changes upload type back to custom
-            if (this.fileTypeWhiteListInputField.get() && !this.fileTypeWhiteListInputField.validate()) {
-                // but will clear the field in case it is invalid
-                this.fileTypeWhiteListInputField.set('');
+        if (!this.isAdditionalRubric) {
+            isValid = (this.startDatetimeControl.validate() && isValid);
+            isValid = (this.dueDatetimeControl.validate() && isValid);
+            isValid = (this.leaderboardIntField.validate() && isValid);
+            if (this.fileUploadType() === 'custom') {
+                isValid = (this.fileTypeWhiteListInputField.validate() && isValid);
+            } else {
+                // we want to keep the valid white list in case author changes upload type back to custom
+                if (this.fileTypeWhiteListInputField.get() && !this.fileTypeWhiteListInputField.validate()) {
+                    // but will clear the field in case it is invalid
+                    this.fileTypeWhiteListInputField.set('');
+                }
             }
         }
 

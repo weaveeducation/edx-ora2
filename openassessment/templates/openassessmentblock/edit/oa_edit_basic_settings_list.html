@@ -1,6 +1,6 @@
 {% load i18n %}
 {% load tz %}
-<ul id="oa_basic_settings_editor" class="list-input settings-list">
+<ul id="oa_basic_settings_editor" class="list-input settings-list" data-is-additional-rubric="{{ is_additional_rubric }}">
     <li id="openassessment_title_editor_wrapper" class="field comp-setting-entry">
         <div class="wrapper-comp-setting">
             <label for="openassessment_title_editor" class="setting-label">{% trans "Display Name "%}</label>
@@ -8,6 +8,7 @@
         </div>
         <p class="setting-help">{% trans "The display name for this component." %}</p>
     </li>
+{% if not is_additional_rubric %}
     <li class="openassessment_date_editor field comp-setting-entry">
         <div class="wrapper-comp-setting">
             <label
@@ -142,6 +143,15 @@
         </div>
         <p class="setting-help">{% trans "Specify the number of top scoring responses to display. Valid numbers are 0 to 99. If the number is 0, the Top Responses section does not appear to learners." %}</p>
     </li>
+    <li id="openassessment_support_multiple_rubrics_wrapper" class="field comp-setting-entry">
+        <div class="wrapper-comp-setting">
+            <label for="openassessment_support_multiple_rubrics_editor" class="setting-label">{% trans "Support Multiple Rubrics" %}</label>
+            <select id="openassessment_support_multiple_rubrics_editor" class="input setting-input" name="support_multiple_rubrics">
+                <option value="0">{% trans "False"%}</option>
+                <option value="1" {% if support_multiple_rubrics %} selected="true" {% endif %}>{% trans "True"%}</option>
+            </select>
+        </div>
+    </li>
     {% if turnitin_settings_display %}
                 <li id="openassessment_turnitin_enabled_wrapper" class="field comp-setting-entry">
                     <div class="wrapper-comp-setting">
@@ -219,5 +229,37 @@
 
         </li>
     {% endif %}
-    <li>
+{% endif %}
+{% if is_additional_rubric %}
+    <li id="openassessment_display_rubric_step_to_students_wrapper" class="field comp-setting-entry">
+        <div class="wrapper-comp-setting">
+            <label for="openassessment_display_rubric_step_to_students_editor" class="setting-label">{% trans "Display Rubric Step to Students" %}</label>
+            <select id="openassessment_display_rubric_step_to_students_editor" class="input setting-input" name="display_rubric_step_to_students">
+                <option value="0">{% trans "False"%}</option>
+                <option value="1" {% if display_rubric_step_to_students %} selected="true" {% endif %}>{% trans "True"%}</option>
+            </select>
+        </div>
+        <p class="setting-help">{% trans "This allows a specific component within a unit to be hidden from the learner on the page, but displayed for a staff user. Similar to the 'hide from learner' visibility settings feature currently at the unit, subsection, and section levels." %}</p>
+    </li>
+    <li id="openassessment_ungraded_wrapper" class="field comp-setting-entry">
+        <div class="wrapper-comp-setting">
+            <label for="openassessment_ungraded_editor" class="setting-label">{% trans "Ungraded" %}</label>
+            <select id="openassessment_ungraded_editor" class="input setting-input" name="ungraded">
+                <option value="0">{% trans "False (default behaviour, use subsection \"Grade as\" setting)"%}</option>
+                <option value="1" {% if ungraded %} selected="true" {% endif %}>{% trans "True"%}</option>
+            </select>
+        </div>
+        <p class="setting-help">{% trans "Choosing True you exclude rubric from the gradebook." %}</p>
+    </li>
+    <li id="openassessment_display_grader_wrapper" class="field comp-setting-entry">
+        <div class="wrapper-comp-setting">
+            <label for="openassessment_display_grader_editor" class="setting-label">{% trans "Display grader" %}</label>
+            <select id="openassessment_display_grader_editor" class="input setting-input" name="display_grader">
+                <option value="0">{% trans "False"%}</option>
+                <option value="1" {% if display_grader %} selected="true" {% endif %}>{% trans "True"%}</option>
+            </select>
+        </div>
+        <p class="setting-help">{% trans "True adds a field at the top of the rubric to indicate which grader (Name) completed the rubric. False nothing is displayed for grader." %}</p>
+    </li>
+{% endif %}
 </ul>

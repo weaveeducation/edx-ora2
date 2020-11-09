@@ -468,6 +468,11 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
                 allow_latex: options.latexEnabled,
                 turnitin_enabled: options.turnitinEnabled,
                 turnitin_config: options.turnitinConfig,
+                ungraded: options.ungraded,
+                display_rubric_step_to_students: options.displayRubricStepToStudents,
+                display_grader: options.displayGrader,
+                support_multiple_rubrics: options.supportMultipleRubrics,
+                parent_block_id: options.parentBlock,
                 leaderboard_show: options.leaderboardNum,
                 teams_enabled: options.teamsEnabled,
                 selected_teamset_id: options.selectedTeamsetId
@@ -710,6 +715,24 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
                 }).fail(function(){
                     defer.rejectWith(this, [gettext('Error when looking up username')]);
                 });
+            });
+        },
+
+        checkSubmissionUuid: function(successFn, failureFn) {
+            var url = this.url('get_student_submission_uuid');
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: JSON.stringify({}),
+                contentType: jsonContentType
+            }).done(function(data){
+                if (data.submission_uuid !== null) {
+                    successFn();
+                } else {
+                    failureFn();
+                }
+            }).fail(function(){
+                failureFn();
             });
         }
     };

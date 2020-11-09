@@ -31,6 +31,9 @@ OpenAssessment.ResponseView = function(element, server, fileUploader, baseView, 
     this.announceStatus = false;
     this.isRendering = false;
     this.fileCountBeforeUpload = 0;
+    this.isAdditionalRubric = 0;
+    this.submissionUuid = '';
+    this.sourceBlockUniqueId = '';
     this.dateFactory = new OpenAssessment.DateTimeFactory(this.element);
 };
 
@@ -72,6 +75,7 @@ OpenAssessment.ResponseView.prototype = {
                 view.announceStatus = false;
                 view.dateFactory.apply();
                 view.checkSubmissionAbility();
+                view.additionalRubricInit();
             }).fail(function() {
             view.baseView.showLoadError('response');
         });
@@ -142,6 +146,47 @@ OpenAssessment.ResponseView.prototype = {
 
         // Install click handlers for delete file buttons.
         sel.find('.delete__uploaded__file').click(this.handleDeleteFileClick());
+    },
+
+    additionalRubricInit: function() {
+        var view = this;
+        var titleBlock = $('.openassessment__title', this.element);
+        var ignore = titleBlock.data('ignore');
+        this.isAdditionalRubric = parseInt(titleBlock.data('is-additional-rubric'));
+        this.sourceBlockUniqueId = titleBlock.data('source-block-unique-id');
+        this.submissionUuid = titleBlock.data('submission-uuid');
+
+        if ((this.isAdditionalRubric !== 1) || (this.sourceBlockUniqueId === '') || (ignore === 'y')) {
+            return;
+        }
+
+        if (this.submissionUuid !== '') {
+            return;
+        }
+
+        var timerId = setInterval(function() {
+            var sourceBlock = $('.' + view.sourceBlockUniqueId);
+            if (sourceBlock) {
+                var stepResponse = $('.step--response', sourceBlock);
+                if ((stepResponse.length > 0) && $(stepResponse).hasClass('is--complete')) {
+                    clearInterval(timerId);
+                    view.additionalRubricCheckSubmission();
+                }
+            }
+        }, 1000);
+    },
+
+    additionalRubricCheckSubmission: function() {
+        var view = this;
+        this.server.checkSubmissionUuid(function() {
+            var titleBlock = $('.openassessment__title', view.element);
+            titleBlock.attr('data-ignore', 'y');
+            view.moveToNextStep();
+        }, function() {
+            setTimeout(function() {
+                view.additionalRubricCheckSubmission();
+            }, 5000);
+        });
     },
 
     handleDeleteFileClick: function() {

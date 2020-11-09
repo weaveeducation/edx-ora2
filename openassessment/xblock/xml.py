@@ -751,6 +751,27 @@ def serialize_content_to_xml(oa_block, root):
     if oa_block.turnitin_config:
         root.set('turnitin_config', six.text_type(json.dumps(oa_block.turnitin_config)))
 
+    if oa_block.block_unique_id is not None:
+        root.set('block_unique_id', six.text_type(oa_block.block_unique_id))
+
+    if oa_block.source_block_unique_id is not None:
+        root.set('source_block_unique_id', six.text_type(oa_block.source_block_unique_id))
+
+    if oa_block.support_multiple_rubrics is not None:
+        root.set('support_multiple_rubrics', six.text_type(oa_block.support_multiple_rubrics))
+
+    if oa_block.is_additional_rubric is not None:
+        root.set('is_additional_rubric', six.text_type(oa_block.is_additional_rubric))
+
+    if oa_block.ungraded is not None:
+        root.set('ungraded', six.text_type(oa_block.ungraded))
+
+    if oa_block.display_rubric_step_to_students is not None:
+        root.set('display_rubric_step_to_students', six.text_type(oa_block.display_rubric_step_to_students))
+
+    if oa_block.display_grader is not None:
+        root.set('display_grader', six.text_type(oa_block.display_grader))
+
     # Set group access setting if not empty
     if oa_block.group_access:
         root.set('group_access', json.dumps(GroupAccessDict().to_json(oa_block.group_access)))
@@ -922,6 +943,35 @@ def parse_from_xml(root):
         turnitin_config = six.text_type(root.attrib['turnitin_config'])
         if turnitin_config:
             turnitin_config = json.loads(turnitin_config)
+
+    block_unique_id = ''
+    if 'block_unique_id' in root.attrib:
+        block_unique_id = six.text_type(root.attrib['block_unique_id'])
+
+    source_block_unique_id = ''
+    if 'source_block_unique_id' in root.attrib:
+        source_block_unique_id = six.text_type(root.attrib['source_block_unique_id'])
+
+    support_multiple_rubrics = False
+    if 'support_multiple_rubrics' in root.attrib:
+        support_multiple_rubrics = _parse_boolean(six.text_type(root.attrib['support_multiple_rubrics']))
+
+    is_additional_rubric = False
+    if 'is_additional_rubric' in root.attrib:
+        is_additional_rubric = _parse_boolean(six.text_type(root.attrib['is_additional_rubric']))
+
+    ungraded = False
+    if 'ungraded' in root.attrib:
+        ungraded = _parse_boolean(six.text_type(root.attrib['ungraded']))
+
+    display_rubric_step_to_students = True
+    if 'display_rubric_step_to_students' in root.attrib:
+        display_rubric_step_to_students = _parse_boolean(six.text_type(root.attrib['display_rubric_step_to_students']))
+
+    display_grader = False
+    if 'display_grader' in root.attrib:
+        display_grader = _parse_boolean(six.text_type(root.attrib['display_grader']))
+
     group_access = {}
     if 'group_access' in root.attrib:
         group_access = GroupAccessDict().from_json(json.loads(root.attrib['group_access']))
@@ -981,6 +1031,13 @@ def parse_from_xml(root):
         'allow_latex': allow_latex,
         'turnitin_enabled': turnitin_enabled,
         'turnitin_config': turnitin_config,
+        'block_unique_id': block_unique_id,
+        'source_block_unique_id': source_block_unique_id,
+        'support_multiple_rubrics': support_multiple_rubrics,
+        'is_additional_rubric': is_additional_rubric,
+        'ungraded': ungraded,
+        'display_rubric_step_to_students': display_rubric_step_to_students,
+        'display_grader': display_grader,
         'group_access': group_access,
         'leaderboard_show': leaderboard_show
     }

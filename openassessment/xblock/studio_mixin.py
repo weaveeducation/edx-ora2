@@ -141,6 +141,11 @@ class StudioMixin:
         course_id = self.location.course_key if hasattr(self, 'location') else None
         turnitin_settings_display = self.check_turnitin_enabled_in_org()
 
+        parent_block = None
+        parent_ora_blocks = []
+        if self.is_additional_rubric:
+            parent_block, parent_ora_blocks = self.get_parents_and_related_parent_block()
+
         return {
             'prompts': self.prompts,
             'prompts_type': self.prompts_type,
@@ -179,6 +184,13 @@ class StudioMixin:
                 'auto_exclude_self_matching_scope', False) if turnitin_settings_display else False,
             'teamsets': self.get_teamsets(course_id),
             'selected_teamset_id': self.selected_teamset_id,
+            'support_multiple_rubrics': self.support_multiple_rubrics,
+            'is_additional_rubric': self.is_additional_rubric,
+            'ungraded': self.ungraded,
+            'display_rubric_step_to_students': self.display_rubric_step_to_students,
+            'display_grader': self.display_grader,
+            'parent_block': parent_block,
+            'parent_ora_blocks': parent_ora_blocks
         }
 
     @XBlock.json_handler
@@ -256,6 +268,9 @@ class StudioMixin:
         if not success:
             return {'success': False, 'msg': self._(u'Validation error: {error}').format(error=msg)}
 
+        if len(self.rubric_criteria) == 0 and data['support_multiple_rubrics']:
+            return {'success': False, 'msg': self._("ORA without rubrics can't support multiple rubrics")}
+
         # At this point, all the input data has been validated,
         # so we can safely modify the XBlock fields.
         self.title = data['title']
@@ -267,23 +282,34 @@ class StudioMixin:
         self.editor_assessments_order = data['editor_assessments_order']
         self.rubric_feedback_prompt = data['feedback_prompt']
         self.rubric_feedback_default_text = data['feedback_default_text']
-        self.submission_start = data['submission_start']
-        self.submission_due = data['submission_due']
-        self.text_response = data['text_response']
-        self.file_upload_response = data['file_upload_response']
-        if data['file_upload_response']:
-            self.file_upload_type = data['file_upload_type']
-            self.white_listed_file_types_string = data['white_listed_file_types']
+        if not self.is_additional_rubric:
+            self.submission_start = data['submission_start']
+            self.submission_due = data['submission_due']
+            self.text_response = data['text_response']
+            self.file_upload_response = data['file_upload_response']
+            if data['file_upload_response']:
+                self.file_upload_type = data['file_upload_type']
+                self.white_listed_file_types_string = data['white_listed_file_types']
+            else:
+                self.file_upload_type = None
+                self.white_listed_file_types_string = None
+            self.allow_latex = bool(data['allow_latex'])
+            self.leaderboard_show = data['leaderboard_show']
+            self.turnitin_enabled = data['turnitin_enabled']
+            self.turnitin_config = data['turnitin_config']
+            self.submission_due_empty = submission_due_empty
+            self.teams_enabled = bool(data.get('teams_enabled', False))
+            self.selected_teamset_id = data.get('selected_teamset_id', '')
+            self.support_multiple_rubrics = bool(data.get('support_multiple_rubrics', False))
+            if self.support_multiple_rubrics and not self.block_unique_id:
+                self.block_unique_id = str(uuid4())
         else:
-            self.file_upload_type = None
-            self.white_listed_file_types_string = None
-        self.allow_latex = bool(data['allow_latex'])
-        self.leaderboard_show = data['leaderboard_show']
-        self.turnitin_enabled = data['turnitin_enabled']
-        self.turnitin_config = data['turnitin_config']
-        self.submission_due_empty = submission_due_empty
-        self.teams_enabled = bool(data.get('teams_enabled', False))
-        self.selected_teamset_id = data.get('selected_teamset_id', '')
+            source_block_unique_id = data.get('parent_block_id')
+            if source_block_unique_id:
+                self.source_block_unique_id = source_block_unique_id
+            self.ungraded = bool(data.get('ungraded'))
+            self.display_rubric_step_to_students = bool(data.get('display_rubric_step_to_students'))
+            self.display_grader = bool(data.get('display_grader'))
 
         return {'success': True, 'msg': self._(u'Successfully updated OpenAssessment XBlock')}
 

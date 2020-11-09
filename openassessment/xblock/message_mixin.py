@@ -139,9 +139,20 @@ class MessageMixin:
         """
 
         submission_approaching = deadline_info.get("submission").get("approaching")
+        if self.source_block_unique_id:
+            parent_block, parent_ora_blocks = self.get_parents_and_related_parent_block()
+        else:
+            parent_block = None
 
         context = {
-            "approaching": submission_approaching
+            "approaching": submission_approaching,
+            "is_additional_rubric": self.is_additional_rubric,
+            "submission_uuid": self.submission_uuid,
+            "support_multiple_rubrics": self.support_multiple_rubrics,
+            "block_unique_id": self.block_unique_id,
+            "source_block_unique_id": self.source_block_unique_id,
+            "parent_block": parent_block,
+            "is_studio": self.xmodule_runtime.get_real_user is None
         }
 
         return 'openassessmentblock/message/oa_message_open.html', context

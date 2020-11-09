@@ -7,6 +7,7 @@ import logging
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.functional import cached_property
 from django.urls import reverse
+from django.db import transaction
 import six
 
 from openassessment.fileupload import api as file_upload_api
@@ -372,6 +373,7 @@ class SubmissionMixin:
         """ Creates submission for the submitted assessment response or a list for a team assessment. """
         # Import is placed here to avoid model import at project startup.
         from submissions import api
+        from lms.djangoapps.courseware.tasks import ora_multiple_rubrics_propagate_answer
 
         # Store the student's response text in a JSON-encodable dict
         # so that later we can add additional response fields.
@@ -386,7 +388,31 @@ class SubmissionMixin:
         if self.check_turnitin_enabled_in_org() and self.turnitin_enabled:
             turnitin_create_submissions(submission["uuid"], self.get_student_item_dict(), submission["answer"])
 
+        submitter_anonymous_user_id = self.xmodule_runtime.anonymous_student_id
+        user = self.get_real_user(submitter_anonymous_user_id)
+
+        if self.support_multiple_rubrics and self.block_unique_id:
+            student_files_info = {}
+            if self.saved_files_descriptions:
+                student_files_info['saved_files_descriptions'] = self.saved_files_descriptions
+            if self.saved_file_names:
+                student_files_info['saved_file_names'] = self.saved_file_names
+            if self.saved_files_names:
+                student_files_info['saved_files_names'] = self.saved_files_names
+            if self.saved_files_sizes:
+                student_files_info['saved_files_sizes'] = self.saved_files_sizes
+
+            transaction.on_commit(lambda: ora_multiple_rubrics_propagate_answer.delay(
+                str(self.location.course_key), str(self.location),
+                user.id, student_item_dict, student_sub_dict, student_files_info
+            ))
+
         # Emit analytics event...
+        self.generate_create_submission_event(submission)
+
+        return submission
+
+    def generate_create_submission_event(self, submission):
         self.runtime.publish(
             self,
             "openassessmentblock.create_submission",
@@ -397,11 +423,12 @@ class SubmissionMixin:
                 "submitted_at": submission["submitted_at"],
                 "answer": submission["answer"],
                 "rubric_count": len(self.rubric_criteria),
-                "prompts": self.get_event_prompts()
+                "prompts": self.get_event_prompts(),
+                "support_multiple_rubrics": self.support_multiple_rubrics,
+                "is_additional_rubric": self.is_additional_rubric,
+                "ungraded": self.ungraded
             }
         )
-
-        return submission
 
     def _collect_files_for_submission(self, student_sub_dict):
         """ Collect files from CSM for individual submisisons or SharedFileUpload for team submisisons. """
@@ -434,6 +461,10 @@ class SubmissionMixin:
         """
         anonymous_id = self.xmodule_runtime.anonymous_student_id
         return {'username': self.get_username(anonymous_id)}
+
+    @XBlock.json_handler
+    def get_student_submission_uuid(self, data, suffix):
+        return {'submission_uuid': self.submission_uuid}
 
     @XBlock.json_handler
     def upload_url(self, data, suffix=''):  # pylint: disable=unused-argument
@@ -756,7 +787,11 @@ class SubmissionMixin:
             "file_upload_response": self.file_upload_response,
             "prompts_type": self.prompts_type,
             "enable_delete_files": False,
-            "rubric_count": len(self.rubric_criteria)
+            "rubric_count": len(self.rubric_criteria),
+            "is_additional_rubric": self.is_additional_rubric,
+            "block_unique_id": self.block_unique_id,
+            "source_block_unique_id": self.source_block_unique_id,
+            "support_multiple_rubrics": self.support_multiple_rubrics,
         }
 
         # Due dates can default to the distant future, in which case

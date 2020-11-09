@@ -80,6 +80,8 @@ class LmsCompatibilityMixin:
         For LMS Progress page/grades download purposes, we're always going to
         have a score, even if it's just 0 at the start.
         """
+        if self.ungraded:
+            return False
         return True
 
     def max_score(self):

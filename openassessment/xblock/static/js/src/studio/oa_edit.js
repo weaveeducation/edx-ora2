@@ -193,13 +193,13 @@ OpenAssessment.StudioView.prototype = {
 
         this.server.updateEditorContext({
             prompts: view.promptsView.promptsDefinition(),
-            prompts_type: view.promptsView.promptsType(),
+            prompts_type: view.settingsView.isAdditionalRubric ? 'html' : view.promptsView.promptsType(),
             feedbackPrompt: view.rubricView.feedbackPrompt(),
             feedback_default_text: view.rubricView.feedback_default_text(),
             criteria: view.rubricView.criteriaDefinition(),
             title: view.settingsView.displayName(),
-            submissionStart: view.settingsView.submissionStart(),
-            submissionDue: view.settingsView.submissionDue(),
+            submissionStart: !view.settingsView.isAdditionalRubric ? view.settingsView.submissionStart() : null,
+            submissionDue: !view.settingsView.isAdditionalRubric ? view.settingsView.submissionDue(): null,
             assessments: view.settingsView.assessmentsDescription(),
             textResponse: view.settingsView.textResponseNecessity(),
             fileUploadResponse: view.settingsView.fileUploadResponseNecessity(),
@@ -209,9 +209,14 @@ OpenAssessment.StudioView.prototype = {
             leaderboardNum: view.settingsView.leaderboardNum(),
             turnitinEnabled: view.settingsView.turnitinEnabled(),
             turnitinConfig: view.settingsView.turnitinSettings(),
+            ungraded: view.settingsView.getUngraded(),
+            displayRubricStepToStudents: view.settingsView.displayRubricStepToStudents(),
+            displayGrader: view.settingsView.displayGrader(),
+            supportMultipleRubrics: view.settingsView.supportMultipleRubrics(),
+            parentBlock: view.promptsView.getParentBlock(),
             editorAssessmentsOrder: view.settingsView.editorAssessmentsOrder(),
             teamsEnabled: view.settingsView.teamsEnabled(),
-            selectedTeamsetId: view.settingsView.teamset(),
+            selectedTeamsetId: view.settingsView.teamset()
         }).done(
             // Notify the client-side runtime that we finished saving
             // so it can hide the "Saving..." notification.
