@@ -61,6 +61,13 @@ class Backend(BaseBackend):
         s3_key = bucket.get_key(key_name)
         s3_key.get_contents_to_file(fp)
 
+    def check_key_exists(self, key):
+        bucket_name, key_name = self._retrieve_parameters(key)
+        conn = _connect_to_s3()
+        bucket = conn.get_bucket(bucket_name)
+        s3_key = bucket.get_key(key_name)
+        return True if s3_key is not None else False
+
     def remove_file(self, key):
         bucket_name, key_name = self._retrieve_parameters(key)
         conn = _connect_to_s3()
