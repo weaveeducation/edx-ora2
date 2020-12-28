@@ -206,6 +206,7 @@ OpenAssessment.StudioView.prototype = {
             fileUploadType: fileUploadType !== '' ? fileUploadType : null,
             fileTypeWhiteList: view.settingsView.fileTypeWhiteList(),
             latexEnabled: view.settingsView.latexEnabled(),
+            includeAllLearners: view.settingsView.includeAllLearners(),
             leaderboardNum: view.settingsView.leaderboardNum(),
             turnitinEnabled: view.settingsView.turnitinEnabled(),
             turnitinConfig: view.settingsView.turnitinSettings(),

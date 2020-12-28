@@ -152,6 +152,16 @@
             </select>
         </div>
     </li>
+    <li id="openassessment_include_all_learners_wrapper" class="field comp-setting-entry">
+        <div class="wrapper-comp-setting">
+            <label for="openassessment_include_all_learners_editor" class="setting-label">{% trans "Include All Enrolled Learners"%}</label>
+            <select id="openassessment_include_all_learners_editor" class="input setting-input" name="include all learners">
+                <option value="0">{% trans "False"%}</option>
+                <option value="1" {% if include_all_learners %} selected="true" {% endif %}>{% trans "True"%}</option>
+            </select>
+        </div>
+        <p class="setting-help">{% trans "Include All Enrolled Learners for Grading"%}</p>
+    </li>
     {% if turnitin_settings_display %}
                 <li id="openassessment_turnitin_enabled_wrapper" class="field comp-setting-entry">
                     <div class="wrapper-comp-setting">

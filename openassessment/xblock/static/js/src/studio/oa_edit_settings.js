@@ -330,6 +330,10 @@ OpenAssessment.EditSettingsView.prototype = {
         return this.settingSelectorEnabled('#openassessment_submission_latex_editor', isEnabled);
     },
 
+    includeAllLearners: function(isEnabled) {
+        return this.settingSelectorEnabled('#openassessment_include_all_learners_editor', isEnabled);
+    },
+
     turnitinEnabled: function(isEnabled) {
         var sel = $('#openassessment_turnitin_enabled_editor', this.settingsElement);
         if (sel.length === 0) {

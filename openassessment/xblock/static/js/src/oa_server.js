@@ -348,6 +348,16 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
             });
         },
 
+        staffAssessWithoutSubmission: function(optionsSelected, criterionFeedback, overallFeedback, studentID, assessType) {
+            return this.submitAssessment("staff_assess_without_submission", {
+                options_selected: optionsSelected,
+                criterion_feedback: criterionFeedback,
+                overall_feedback: overallFeedback,
+                student_id: studentID,
+                assess_type: assessType
+            });
+        },
+
         /**
          * Submit an instructor-provided training example.
          *
@@ -466,6 +476,7 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
                 file_upload_type: options.fileUploadType,
                 white_listed_file_types: options.fileTypeWhiteList,
                 allow_latex: options.latexEnabled,
+                include_all_learners: options.includeAllLearners,
                 turnitin_enabled: options.turnitinEnabled,
                 turnitin_config: options.turnitinConfig,
                 ungraded: options.ungraded,

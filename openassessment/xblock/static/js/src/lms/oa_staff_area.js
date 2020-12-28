@@ -109,10 +109,16 @@
                             function(eventObject) {
                                 var target = $(eventObject.currentTarget),
                                     rootElement = target.closest('.openassessment__student-info'),
-                                    submissionID = rootElement.data('submission-uuid');
+                                    submissionID = rootElement.data('submission-uuid'),
+                                    studentID = rootElement.data('student-id');
 
                                 eventObject.preventDefault();
-                                view.submitStaffOverride(submissionID, rubric, $manageLearnersTab, fnCallback);
+
+                                if (submissionID) {
+                                    view.submitStaffOverride(submissionID, rubric, $manageLearnersTab, fnCallback);
+                                } else {
+                                    view.submitStaffOverrideWithoutSubmission(studentID, rubric, $manageLearnersTab, fnCallback);
+                                }
                             }
                         );
                     }
@@ -621,6 +627,25 @@
             this.callStaffAssess(submissionID, rubric, scope, successCallback, '.staff-override-error', 'regrade');
         },
 
+        submitStaffOverrideWithoutSubmission: function(studentID, rubric, scope, fnCallback) {
+            console.log('submitStaffOverrideWithoutSubmission', studentID, rubric, scope, fnCallback)
+            var view = this;
+            var successCallback = function() {
+                view.baseView.unsavedWarningEnabled(false, view.OVERRIDE_UNSAVED_WARNING_KEY);
+                // Note: we ignore any message returned from the server and instead
+                // re-render the student info with the "Learner's Final Grade"
+                // section expanded. This section will show the learner's
+                // final grade and in the future should include details of
+                // the staff override itself.
+                if (fnCallback) {
+                    fnCallback();
+                } else {
+                    view.loadStudentInfo('staff-info__student__grade');
+                }
+            };
+            this.callStaffAssessWithoutSubmission(studentID, rubric, scope, successCallback, '.staff-override-error', 'regrade');
+        },
+
         /**
          * Submit the staff grade, and check out another learner for grading if continueGrading is true.
          *
@@ -663,6 +688,18 @@
 
             this.server.staffAssess(
                 rubric.optionsSelected(), rubric.criterionFeedback(), rubric.overallFeedback(), submissionID, assessType
+            ).done(successCallback).fail(function(errorMessage) {
+                scope.find(errorSelector).html(_.escape(errorMessage));
+                view.staffSubmitEnabled(scope, true);
+            });
+        },
+
+        callStaffAssessWithoutSubmission: function(studentID, rubric, scope, successCallback, errorSelector, assessType) {
+            var view = this;
+            view.staffSubmitEnabled(scope, false);
+
+            this.server.staffAssessWithoutSubmission(
+                rubric.optionsSelected(), rubric.criterionFeedback(), rubric.overallFeedback(), studentID, assessType
             ).done(successCallback).fail(function(errorMessage) {
                 scope.find(errorSelector).html(_.escape(errorMessage));
                 view.staffSubmitEnabled(scope, true);
