@@ -86,6 +86,67 @@ class StaffAssessmentMixin:
             return {'success': False, 'msg': msg}
         else:
             return {'success': True, 'msg': u""}
+    
+    @XBlock.json_handler
+    @require_course_staff("STUDENT_INFO")
+    @verify_assessment_parameters
+    def staff_assess_without_submission(self, data, suffix=''):  # pylint: disable=unused-argument
+        """
+        Create a staff submission and staff assessment for a student.
+        """
+
+        if 'student_id' not in data:
+            return {
+                'success': False, 'msg': self._(u"The student ID was not found.")
+            }
+
+        student_id = data.get('student_id')
+        student_item = self.get_student_item_dict(student_id)
+        submission = self.create_submission(student_item, ['N/A'])
+        submission_uuid = submission['uuid']
+
+        try:
+            if len(self.rubric_criteria) > 0:
+                assessment = staff_api.create_assessment(
+                    submission_uuid,
+                    self.get_student_item_dict()["student_id"],
+                    data['options_selected'],
+                    clean_criterion_feedback(self.rubric_criteria, data['criterion_feedback']),
+                    data['overall_feedback'],
+                    create_rubric_dict(self.prompts, self.rubric_criteria_with_labels)
+                )
+                assess_type = data.get('assess_type', 'regrade')
+
+                submission_dict = self.get_user_submission(submission_uuid)
+                if 'answer' in submission_dict:
+                    assessment['answer'] = submission_dict['answer'].copy()
+
+                self.publish_assessment_event("openassessmentblock.staff_assess", assessment, type=assess_type)
+                workflow_api.update_from_assessments(
+                    assessment["submission_uuid"],
+                    None,
+                    override_submitter_requirements=(assess_type == 'regrade')
+                )
+            else:
+                staff_api.close_without_assessment(submission_uuid, self.get_student_item_dict()["student_id"])
+
+        except StaffAssessmentRequestError:
+            logger.warning(
+                u"An error occurred while creating a stuff submission and "
+                u"submitting a staff assessment for the student {}".format(student_id),
+                exc_info=True
+            )
+            msg = self._(u"Your staff assessment could not be submitted.")
+            return {'success': False, 'msg': msg}
+        except StaffAssessmentInternalError:
+            logger.exception(
+                u"An error occurred while creating a stuff submission and "
+                u"submitting a staff assessment for the student {}".format(student_id),
+            )
+            msg = self._(u"Your staff assessment could not be submitted.")
+            return {'success': False, 'msg': msg}
+        else:
+            return {'success': True, 'msg': u""}
 
     @XBlock.handler
     def render_staff_assessment(self, data, suffix=''):  # pylint: disable=unused-argument

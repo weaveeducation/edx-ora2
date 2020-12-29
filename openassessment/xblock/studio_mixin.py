@@ -163,6 +163,7 @@ class StudioMixin:
             'file_upload_type': self.file_upload_type,
             'white_listed_file_types': self.white_listed_file_types_string,
             'allow_latex': self.allow_latex,
+            'include_all_learners': self.include_all_learners,
             'leaderboard_show': self.leaderboard_show,
             'editor_assessments_order': [
                 make_django_template_key(asmnt)
@@ -294,6 +295,7 @@ class StudioMixin:
                 self.file_upload_type = None
                 self.white_listed_file_types_string = None
             self.allow_latex = bool(data['allow_latex'])
+            self.include_all_learners = bool(data['include_all_learners'])
             self.leaderboard_show = data['leaderboard_show']
             self.turnitin_enabled = data['turnitin_enabled']
             self.turnitin_config = data['turnitin_config']

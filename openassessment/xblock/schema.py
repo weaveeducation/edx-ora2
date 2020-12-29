@@ -113,6 +113,7 @@ EDITOR_UPDATE_SCHEMA = Schema({
     Required('file_upload_type', default=None): Any(All(utf8_validator, In(VALID_UPLOAD_FILE_TYPES)), None),
     'white_listed_file_types': utf8_validator,
     Required('allow_latex'): bool,
+    Required('include_all_learners'): bool,
     Required('turnitin_enabled'): bool,
     Required('ungraded'): bool,
     Required('display_rubric_step_to_students'): bool,
