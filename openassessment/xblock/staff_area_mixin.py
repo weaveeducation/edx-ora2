@@ -380,7 +380,6 @@ class StaffAreaMixin:
             context['turnitin_display_link'] = None
 
         context['xblock_id'] = self.get_xblock_id()
-        print('----->', context)
         return context
 
     def get_student_info_path_and_context(self, student_username):
