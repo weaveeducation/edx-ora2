@@ -644,7 +644,6 @@ class OpenAssessmentBlock(MessageMixin,
             "block_unique_id": self.block_unique_id,
             "parent_block": parent_block,
             "is_studio": self.xmodule_runtime.get_real_user is None,
-            "get_parents_and_related_parent_block"
             "show_staff_area": self.is_course_staff and not self.in_studio_preview,
         }
         template = get_template("openassessmentblock/oa_base.html")
@@ -1484,7 +1483,8 @@ class OpenAssessmentBlock(MessageMixin,
                             'usage_id': str(p.location),
                             'display_name': p.display_name,
                             'prompts': p.prompts,
-                            'file_upload_type': p.file_upload_type
+                            'file_upload_type': p.file_upload_type,
+                            'turnitin_enabled': p.turnitin_enabled
                         }
                     parent_ora_blocks.append(item)
 
