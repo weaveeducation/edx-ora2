@@ -638,7 +638,6 @@ class OpenAssessmentBlock(MessageMixin,
             "block_unique_id": self.block_unique_id,
             "parent_block": parent_block,
             "is_studio": self.xmodule_runtime.get_real_user is None,
-            "get_parents_and_related_parent_block"
             "show_staff_area": self.is_course_staff and not self.in_studio_preview,
         }
         template = get_template("openassessmentblock/oa_base.html")
