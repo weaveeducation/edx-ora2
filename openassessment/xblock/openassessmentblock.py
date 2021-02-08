@@ -1483,7 +1483,8 @@ class OpenAssessmentBlock(MessageMixin,
                             'usage_id': str(p.location),
                             'display_name': p.display_name,
                             'prompts': p.prompts,
-                            'file_upload_type': p.file_upload_type
+                            'file_upload_type': p.file_upload_type,
+                            'turnitin_enabled': p.turnitin_enabled
                         }
                     parent_ora_blocks.append(item)
 

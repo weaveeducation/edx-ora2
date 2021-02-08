@@ -4,6 +4,7 @@ determine the flow of the problem.
 """
 from __future__ import absolute_import
 
+import json
 import copy
 from django.core.exceptions import ObjectDoesNotExist
 from functools import wraps
@@ -322,6 +323,8 @@ class StaffAreaMixin:
         Returns:
             A context dict for rendering a student submission and associated rubric (for staff grading).
         """
+        from lms.djangoapps.courseware.models import StudentModule
+
         user_preferences = get_user_preferences(self.runtime.service(self, 'user'))  # localize for staff user
 
         anonymous_user_id = self.get_anonymous_user_id(student_username, self.course_id)
@@ -368,12 +371,25 @@ class StaffAreaMixin:
             context['rubric_feedback_default_text'] = self.rubric_feedback_default_text
 
         turnitin_enabled = self.check_turnitin_enabled_in_org() and self.turnitin_enabled
+        submission_uuid = submission['uuid'] if submission else None
+
+        if self.is_additional_rubric:
+            parent_block = self.get_parent_block()
+            turnitin_enabled = self.check_turnitin_enabled_in_org() and parent_block['turnitin_enabled']
+            anonymous_user_id = self.get_anonymous_user_id(student_username, self.course_id)
+            user = self.get_real_user(anonymous_user_id)
+            student_module = StudentModule.objects.filter(course_id=self.course_id, student=user,
+                                                          module_state_key=parent_block['usage_id']).first()
+            if student_module:
+                state_data = json.loads(student_module.state)
+                submission_uuid = state_data.get('submission_uuid')
+
         context["turnitin_enabled"] = turnitin_enabled
 
         if turnitin_enabled:
             context["turnitin_data"] = None
-            if submission:
-                context["turnitin_data"] = get_turnitin_submissions_status(submission['uuid'], True)
+            if submission_uuid:
+                context["turnitin_data"] = get_turnitin_submissions_status(submission_uuid, True)
             context['turnitin_display_link'] = True
         else:
             context["turnitin_data"] = None

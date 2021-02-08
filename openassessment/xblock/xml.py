@@ -745,6 +745,9 @@ def serialize_content_to_xml(oa_block, root):
     if oa_block.allow_latex is not None:
         root.set('allow_latex', six.text_type(oa_block.allow_latex))
 
+    if oa_block.include_all_learners is not None:
+        root.set('include_all_learners', six.text_type(oa_block.include_all_learners))
+
     if oa_block.turnitin_enabled is not None:
         root.set('turnitin_enabled', six.text_type(oa_block.turnitin_enabled))
 
@@ -934,6 +937,10 @@ def parse_from_xml(root):
     if 'allow_latex' in root.attrib:
         allow_latex = _parse_boolean(six.text_type(root.attrib['allow_latex']))
 
+    include_all_learners = False
+    if 'include_all_learners' in root.attrib:
+        include_all_learners = _parse_boolean(six.text_type(root.attrib['include_all_learners']))
+
     turnitin_enabled = False
     if 'turnitin_enabled' in root.attrib:
         turnitin_enabled = _parse_boolean(six.text_type(root.attrib['turnitin_enabled']))
@@ -1029,6 +1036,7 @@ def parse_from_xml(root):
         'file_upload_type': file_upload_type,
         'white_listed_file_types': white_listed_file_types,
         'allow_latex': allow_latex,
+        'include_all_learners': include_all_learners,
         'turnitin_enabled': turnitin_enabled,
         'turnitin_config': turnitin_config,
         'block_unique_id': block_unique_id,
