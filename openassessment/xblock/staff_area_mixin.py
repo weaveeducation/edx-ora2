@@ -15,6 +15,7 @@ from openassessment.workflow.models import AssessmentWorkflow
 from openassessment.xblock.data_conversion import create_submission_dict, list_to_conversational_format
 from openassessment.xblock.resolve_dates import DISTANT_FUTURE, DISTANT_PAST
 from turnitin_integration.service import get_submissions_status as get_turnitin_submissions_status
+from student.models import anonymous_id_for_user
 from xblock.core import XBlock
 
 from .user_data import get_user_preferences
@@ -267,42 +268,46 @@ class StaffAreaMixin:
     @require_course_staff("STUDENT_GRADE")
     def get_student_statuses(self, data, suffix=''):
         from submissions import api as submission_api
-        from student.models import AnonymousUserId
+        from student.models import AnonymousUserId, CourseEnrollment
 
-        data = submission_api.get_all_submissions(self.location.course_key, self.location, 'openassessment')
-        result = {}
-        uuids = []
+        submissions = submission_api.get_all_submissions(self.location.course_key, self.location, 'openassessment')
+
+        student_uuid_map = {}
+        uuid_status_map = {}
         student_ids = []
 
-        for item in data:
-            result[item['uuid']] = {'student_id': item['student_id']}
-            uuids.append(item['uuid'])
-            student_ids.append(item['student_id'])
+        for submission in submissions:
+            student_id = submission['student_id']
+            student_uuid_map[student_id] = submission['uuid']
+            student_ids.append(student_id)
 
-        workflows = AssessmentWorkflow.objects.filter(submission_uuid__in=uuids)
+        if self.include_all_learners:
+            enrolls = CourseEnrollment.objects.filter(course_id=self.location.course_key)
+            for enroll in enrolls:
+                student_id = anonymous_id_for_user(enroll.user, self.location.course_key)
+                if student_id not in student_ids:
+                    student_ids.append(student_id)
+
+        workflows = AssessmentWorkflow.objects.filter(submission_uuid__in=student_uuid_map.values())
         for workflow in workflows:
-            result[workflow.submission_uuid]['status'] = workflow.status
+            uuid_status_map[workflow.submission_uuid] = workflow.status
 
-        students_data = {}
+        students_data = []
         students = AnonymousUserId.objects.select_related('user').filter(
             course_id=self.location.course_key, anonymous_user_id__in=student_ids)
         for student in students:
-            students_data[student.anonymous_user_id] = {
+            students_data.append({
                 'name': student.user.first_name + ' ' + student.user.last_name,
                 'username': student.user.username,
                 'email': student.user.email,
-                'user_id': student.user.id
-            }
+                'user_id': student.user.id,
+                'student_id': student.anonymous_user_id,
+                'status': uuid_status_map.get(
+                    student_uuid_map.get(student.anonymous_user_id), 'incomplete'
+                )
+            })
 
-        new_result = {}
-        for uuid_key, res in result.items():
-            if res['student_id'] in students_data:
-                res.update(students_data[res['student_id']])
-                new_result[uuid_key] = res.copy()
-
-        new_result = new_result.values()
-
-        return {'result': sorted(new_result, key=lambda k: k['username'])}
+        return {'result': sorted(students_data, key=lambda k: k['username'])}
 
     def get_student_submission_context(self, student_username, submission):
         """
@@ -319,6 +324,8 @@ class StaffAreaMixin:
         """
         user_preferences = get_user_preferences(self.runtime.service(self, 'user'))  # localize for staff user
 
+        anonymous_user_id = self.get_anonymous_user_id(student_username, self.course_id)
+
         context = {
             'submission': create_submission_dict(submission, self.prompts) if submission else None,
             'rubric_criteria': copy.deepcopy(self.rubric_criteria_with_labels),
@@ -327,6 +334,7 @@ class StaffAreaMixin:
             'support_multiple_rubrics': self.support_multiple_rubrics,
             'block_unique_id': self.block_unique_id,
             'source_block_unique_id': self.source_block_unique_id,
+            'student_id': anonymous_user_id,
             'student_username': student_username,
             'user_timezone': user_preferences['user_timezone'],
             'user_language': user_preferences['user_language'],
@@ -372,6 +380,7 @@ class StaffAreaMixin:
             context['turnitin_display_link'] = None
 
         context['xblock_id'] = self.get_xblock_id()
+        print('----->', context)
         return context
 
     def get_student_info_path_and_context(self, student_username):
@@ -407,11 +416,13 @@ class StaffAreaMixin:
         # This will add submission (which may be None) and username to the context.
         context = self.get_student_submission_context(student_username, submission)
 
+        path = 'openassessmentblock/staff_area/oa_student_info_no_sumbission.html'
+
         # Only add the rest of the details to the context if a submission exists.
         if submission_uuid:
             self.add_submission_context(submission_uuid, context)
+            path = 'openassessmentblock/staff_area/oa_student_info.html'
 
-        path = 'openassessmentblock/staff_area/oa_student_info.html'
         return path, context
 
     def add_submission_context(self, submission_uuid, context):

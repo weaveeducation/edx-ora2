@@ -184,6 +184,12 @@ class OpenAssessmentBlock(MessageMixin,
         help="Latex rendering allowed with submission."
     )
 
+    include_all_learners = Boolean(
+        default=False,
+        scope=Scope.settings,
+        help="Include All Enrolled Learners for Grading."
+    )
+
     title = String(
         default="Open Response Assessment",
         scope=Scope.content,
@@ -942,6 +948,7 @@ class OpenAssessmentBlock(MessageMixin,
         block.file_upload_type = config['file_upload_type']
         block.white_listed_file_types_string = config['white_listed_file_types']
         block.allow_latex = config['allow_latex']
+        block.include_all_learners = config['include_all_learners']
         block.turnitin_enabled = config['turnitin_enabled']
         block.turnitin_config = config['turnitin_config']
         block.block_unique_id = config['block_unique_id']
