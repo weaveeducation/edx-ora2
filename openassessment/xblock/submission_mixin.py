@@ -369,7 +369,7 @@ class SubmissionMixin:
         )
         return submission
 
-    def create_submission(self, student_item_dict, student_sub_data):
+    def create_submission(self, student_item_dict, student_sub_data, ignore_files_check=False):
         """ Creates submission for the submitted assessment response or a list for a team assessment. """
         # Import is placed here to avoid model import at project startup.
         from submissions import api
@@ -379,7 +379,8 @@ class SubmissionMixin:
         # so that later we can add additional response fields.
         student_sub_dict = prepare_submission_for_serialization(student_sub_data)
 
-        self._collect_files_for_submission(student_sub_dict)
+        if not ignore_files_check:
+            self._collect_files_for_submission(student_sub_dict)
 
         submission = api.create_submission(student_item_dict, student_sub_dict)
         self.create_workflow(submission["uuid"])
