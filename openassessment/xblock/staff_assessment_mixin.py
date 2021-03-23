@@ -102,7 +102,7 @@ class StaffAssessmentMixin:
 
         student_id = data.get('student_id')
         student_item = self.get_student_item_dict(student_id)
-        submission = self.create_submission(student_item, ['N/A'])
+        submission = self.create_submission(student_item, ['N/A'], True)
         submission_uuid = submission['uuid']
 
         try:
