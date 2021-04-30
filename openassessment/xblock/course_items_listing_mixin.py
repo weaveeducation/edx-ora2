@@ -100,7 +100,6 @@ class CourseItemsListingMixin:
                 seq_name = parents[result_item_id][1].display_name
                 parent_name = parents[result_item_id][0].display_name
                 ora_item_dict = ora_responses.get(result_item_id, {})
-                print(result_item_id, ora_item_dict)
 
                 training_val = ora_item_dict.get('training', 0)
                 peer_val = ora_item_dict.get('peer', 0)
