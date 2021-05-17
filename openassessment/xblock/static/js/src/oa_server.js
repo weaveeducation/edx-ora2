@@ -44,7 +44,7 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
             var url = this.url('render_' + component);
             return $.Deferred(function(defer) {
                 $.ajax({
-                    url: url,
+                    url: url + (window.lti_context_id ? ('?lti_context_id=' + window.lti_context_id) : ''),
                     type: "POST",
                     dataType: "html"
                 }).done(function(data) {
@@ -117,12 +117,16 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
 
         studentStatuses: function() {
             var url = this.url('get_student_statuses');
+            var postData = {};
+            if (window.lti_context_id) {
+                postData.lti_context_id = window.lti_context_id;
+            }
             return $.Deferred(function(defer) {
                 $.ajax({
                     url: url,
                     type: "POST",
                     dataType: "json",
-                    data: '{}'
+                    data: JSON.stringify(postData)
                 }).done(function(data) {
                     defer.resolveWith(this, [data.result]);
                 }).fail(function() {
@@ -141,7 +145,7 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
             var url = this.url('render_staff_grade_form');
             return $.Deferred(function(defer) {
                 $.ajax({
-                    url: url,
+                    url: url + (window.lti_context_id ? ('?lti_context_id=' + window.lti_context_id) : ''),
                     type: "POST",
                     dataType: "html"
                 }).done(function(data) {
@@ -162,7 +166,7 @@ if (typeof OpenAssessment.Server === "undefined" || !OpenAssessment.Server) {
             var url = this.url('render_staff_grade_counts');
             return $.Deferred(function(defer) {
                 $.ajax({
-                    url: url,
+                    url: url + (window.lti_context_id ? ('?lti_context_id=' + window.lti_context_id) : ''),
                     type: "POST",
                     dataType: "html"
                 }).done(function(data) {
