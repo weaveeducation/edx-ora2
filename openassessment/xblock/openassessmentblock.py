@@ -441,6 +441,13 @@ class OpenAssessmentBlock(MessageMixin,
         self.white_listed_file_types = [file_type.strip().strip('.').lower()
                                         for file_type in value.split(',')] if value else None
 
+    def check_include_all_learners(self):
+        if self.is_additional_rubric:
+            parent_block = self.get_parent_block()
+            if parent_block:
+                return parent_block.get('include_all_learners', self.include_all_learners)
+        return self.include_all_learners
+
     def get_anonymous_user_id(self, username, course_id):
         """
         Get the anonymous user id from Xblock user service.
@@ -1484,7 +1491,8 @@ class OpenAssessmentBlock(MessageMixin,
                             'display_name': p.display_name,
                             'prompts': p.prompts,
                             'file_upload_type': p.file_upload_type,
-                            'turnitin_enabled': p.turnitin_enabled
+                            'turnitin_enabled': p.turnitin_enabled,
+                            'include_all_learners': p.include_all_learners
                         }
                     parent_ora_blocks.append(item)
 

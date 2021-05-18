@@ -282,7 +282,7 @@ class StaffAreaMixin:
             student_uuid_map[student_id] = submission['uuid']
             student_ids.append(student_id)
 
-        if self.include_all_learners:
+        if self.check_include_all_learners():
             enrolls = CourseEnrollment.objects.filter(course_id=self.location.course_key)
             for enroll in enrolls:
                 student_id = anonymous_id_for_user(enroll.user, self.location.course_key)
