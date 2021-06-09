@@ -18,7 +18,7 @@ from lazy import lazy
 from webob import Response
 from xblock.core import XBlock
 from xblock.exceptions import NoSuchServiceError
-from xblock.fields import Boolean, Integer, List, Scope, String
+from xblock.fields import Boolean, Integer, List, Scope, String, Dict
 from web_fragments.fragment import Fragment
 
 from openassessment.workflow.errors import AssessmentWorkflowError
@@ -297,6 +297,64 @@ class OpenAssessmentBlock(MessageMixin,
         default=False,
         scope=Scope.settings,
         help="Should the rubric be visible to learners in the response section?"
+    )
+
+    turnitin_enabled = Boolean(
+        default=False,
+        scope=Scope.settings,
+        help="Turnitin enabled."
+    )
+
+    turnitin_config = Dict(
+        default={},
+        scope=Scope.settings,
+        help="Turnitin config."
+    )
+
+    support_multiple_rubrics = Boolean(
+        default=False,
+        scope=Scope.settings,
+        help="Support Multiple Rubrics",
+    )
+
+    is_additional_rubric = Boolean(
+        default=False,
+        scope=Scope.settings,
+        help="If current block is an additional rubric",
+    )
+
+    block_unique_id = String(
+        default="",
+        scope=Scope.settings,
+        help="Internal ID"
+    )
+
+    source_block_unique_id = String(
+        default="",
+        scope=Scope.settings,
+        help="If current block is an additional rubric"
+    )
+
+    ungraded = Boolean(
+        default=False,
+        scope=Scope.settings,
+        help="Choosing True you exclude rubric from the gradebook.",
+    )
+
+    display_rubric_step_to_students = Boolean(
+        default=True,
+        scope=Scope.settings,
+        help="This allows a specific component within a unit to be hidden from the learner on the page, "
+             "but displayed for a staff user. Similar to the “hide from learner” visibility settings "
+             "feature currently at the unit, subsection, and section levels",
+    )
+
+    display_grader = Boolean(
+        default=False,
+        scope=Scope.settings,
+        help="True adds a field at the top of the rubric to indicate which grader (Name) completed the rubric. "
+             "False nothing is displayed for grader. In scenarios where grading is anonymous, "
+             "such as the peer grading option, false is the only option",
     )
 
     @property
@@ -1317,3 +1375,8 @@ class OpenAssessmentBlock(MessageMixin,
         xblock_body["content_type"] = "ORA"
 
         return xblock_body
+
+    def is_hidden(self):
+        if self.is_additional_rubric and not self.display_rubric_step_to_students and not self.is_course_staff:
+            return True
+        return False
