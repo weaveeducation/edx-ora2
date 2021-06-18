@@ -322,7 +322,7 @@ class StaffAreaMixin:
         """
         Renders a form to show the number of ungraded and checked out assessments.
 
-        Must be course staff to render this view.x
+        Must be course staff to render this view.
         """
         try:
             student_item_dict = self.get_student_item_dict()
