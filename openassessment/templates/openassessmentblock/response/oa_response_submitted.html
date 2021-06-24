@@ -29,6 +29,9 @@
         <div class="step__message message message--complete">
             <h5 class="message__title">{% trans "Status" %}</h5>
             <div class="message__content">
+                {% if rubric_count == 0 %}
+                {% trans "Your response has been submitted." %}
+                {% else %}
                 {% trans "Your response has been submitted. You will receive your grade after all steps are complete and your response is fully assessed." %}
                 {% if peer_incomplete and self_incomplete %}
                     {% blocktrans with peer_start_tag='<a data-behavior="ui-scroll" href="#openassessment__peer-assessment__'|add:xblock_id|add:'">'|safe self_start_tag='<a data-behavior="ui-scroll" href="#openassessment__self-assessment__'|add:xblock_id|add:'">'|safe end_tag='</a>'|safe %}
@@ -42,6 +45,7 @@
                     {% blocktrans with start_tag='<a data-behavior="ui-scroll" href="#openassessment__self-assessment__'|add:xblock_id|add:'">'|safe end_tag='</a>'|safe%}
                         You still need to complete the {{ start_tag }}self assessment{{ end_tag }} step.
                     {% endblocktrans %}
+                {% endif %}
                 {% endif %}
             </div>
         </div>
@@ -59,4 +63,32 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block turnitin %}
+{% if turnitin_enabled %}
+<li id="openassessment__response__{{ xblock_id }}"
+    class="openassessment__steps__step step--turnitin {{ turnitin_data.css_class }} ui-slidable__container is--showing"
+    tabindex="-1">
+    <header class="step__header ui-slidable__control">
+        <span>
+            <button class="ui-slidable" aria-expanded="true" id="oa_response_{{ xblock_id }}" aria-controls="oa_response_{{ xblock_id }}_content" aria-labeledby="oa_step_title_response">
+            <span class="icon fa fa-caret-right" aria-hidden="false"></span>
+            </button>
+        </span>
+        <span>
+            <h4 class="step__title">
+                <span class="wrapper--copy" style="margin-left: 0; border-left: none; padding-left: 0;">
+                <span class="step__label">Turnitin Check</span>
+                </span>
+            </h4>
+        </span>
+    </header>
+    <div class="ui-slidable__content" aria-labelledby="oa_turnitin_{{ xblock_id }}" id="oa_turnitin_{{ xblock_id }}_content">
+        <div class="wrapper--step__content">
+            {% include "openassessmentblock/oa_turnitin_files.html" with turnitin_enabled=turnitin_enabled turnitin_data=turnitin_data display_header=False %}
+        </div>
+    </div>
+</li>
+{% endif %}
 {% endblock %}

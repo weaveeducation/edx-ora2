@@ -23,6 +23,7 @@ export class EditSettingsView {
   constructor(element, assessmentViews, data) {
     const self = this;
     this.settingsElement = element;
+    this.isAdditionalRubric = $(this.settingsElement).data('is-additional-rubric') === 'True';
     this.assessmentViews = assessmentViews;
     this.data = data;
 
@@ -61,6 +62,19 @@ export class EditSettingsView {
         }
       },
       new Notifier([new AssessmentToggleListener()]),
+    ).install();
+
+    new SelectControl(
+      $("#openassessment_turnitin_enabled_editor", this.element), function(selectedValue) {
+        $(".turnitin-setting", self.element).each(function(idx, el) {
+          if (parseInt(selectedValue) === 1) {
+            $(el).removeClass('is--hidden');
+          } else {
+            $(el).addClass('is--hidden');
+          }
+        });
+      },
+      new Notifier([new AssessmentToggleListener()])
     ).install();
 
     new SelectControl(
@@ -351,6 +365,78 @@ export class EditSettingsView {
     return this.settingSelectorEnabled('#openassessment_submission_latex_editor', isEnabled);
   }
 
+  includeAllLearners(isEnabled) {
+    return this.settingSelectorEnabled('#openassessment_include_all_learners_editor', isEnabled);
+  }
+
+  turnitinEnabled(isEnabled) {
+    const sel = $('#openassessment_turnitin_enabled_editor', this.settingsElement);
+    if (sel.length === 0) {
+      return false;
+    }
+    if (isEnabled !== undefined) {
+      if (isEnabled) {
+        sel.val(1);
+      } else {
+        sel.val(0);
+      }
+    }
+    return parseInt(sel.val()) === 1;
+  }
+
+  turnitinSettings() {
+    const sel = $('#openassessment_turnitin_enabled_editor', this.settingsElement);
+    if (sel.length === 0) {
+      return {};
+    }
+    if (parseInt(sel.val()) === 1) {
+      const sel1 = $('#openassessment_turnitin_display_score_editor', this.settingsElement);
+      const sel2 = $('#openassessment_turnitin_display_link_editor', this.settingsElement);
+      const sel3 = $('#openassessment_turnitin_add_to_index_editor', this.settingsElement);
+      const sel4 = $('#openassessment_turnitin_auto_exclude_self_matching_scope_editor', this.settingsElement);
+      return {
+        display_score: parseInt(sel1.val()) === 1,
+        display_link: parseInt(sel2.val()) === 1,
+        add_to_index: parseInt(sel3.val()) === 1,
+        auto_exclude_self_matching_scope: parseInt(sel4.val()) === 1
+      };
+    }
+
+    return {};
+  }
+
+  getUngraded() {
+    const sel = $('#openassessment_ungraded_editor', this.settingsElement);
+    if (sel.length === 0) {
+      return false;
+    }
+    return parseInt(sel.val()) === 1;
+  }
+
+  displayRubricStepToStudents() {
+    const sel = $('#openassessment_display_rubric_step_to_students_editor', this.settingsElement);
+    if (sel.length === 0) {
+      return false;
+    }
+    return parseInt(sel.val()) === 1;
+  }
+
+  displayGrader() {
+    const sel = $('#openassessment_display_grader_editor', this.settingsElement);
+    if (sel.length === 0) {
+      return false;
+    }
+    return parseInt(sel.val()) === 1;
+  }
+
+  supportMultipleRubrics() {
+    const sel = $('#openassessment_support_multiple_rubrics_editor', this.settingsElement);
+    if (sel.length === 0) {
+      return false;
+    }
+    return parseInt(sel.val()) === 1;
+  }
+
   /**
     Enable/disable team assignments.
 
@@ -421,6 +507,10 @@ export class EditSettingsView {
 
     * */
   leaderboardNum(num) {
+    if (this.isAdditionalRubric) {
+      return 0;
+    }
+
     if (num !== undefined) {
       this.leaderboardIntField.set(num);
     }
@@ -449,6 +539,10 @@ export class EditSettingsView {
   validate() {
     // Validate the start and due datetime controls
     let isValid = true;
+
+    if (this.isAdditionalRubric) {
+      return isValid;
+    }
 
     isValid = (this.leaderboardIntField.validate() && isValid);
     if (this.fileUploadType() === 'custom') {

@@ -68,7 +68,7 @@ export class Server {
     const url = this.url(`render_${component}`);
     return $.Deferred((defer) => {
       $.ajax({
-        url,
+        url: url + (window.lti_context_id ? ('?lti_context_id=' + window.lti_context_id) : ''),
         type: 'POST',
         dataType: 'html',
       }).done((data) => {
@@ -139,6 +139,26 @@ export class Server {
     }).promise();
   }
 
+  studentStatuses() {
+    const url = this.url('get_student_statuses');
+    const postData = {};
+    if (window.lti_context_id) {
+      postData.lti_context_id = window.lti_context_id;
+    }
+    return $.Deferred(function(defer) {
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: JSON.stringify(postData)
+      }).done(function(data) {
+        defer.resolveWith(this, [data.result]);
+      }).fail(function() {
+        defer.rejectWith(this, [gettext('This section could not be loaded.')]);
+      });
+    }).promise();
+  }
+
   /**
    * Renders the next submission for staff grading.
    *
@@ -149,7 +169,7 @@ export class Server {
     const url = this.url('render_staff_grade_form');
     return $.Deferred((defer) => {
       $.ajax({
-        url,
+        url: url + (window.lti_context_id ? ('?lti_context_id=' + window.lti_context_id) : ''),
         type: 'POST',
         dataType: 'html',
       }).done(function (data) {
@@ -170,7 +190,7 @@ export class Server {
     const url = this.url('render_staff_grade_counts');
     return $.Deferred((defer) => {
       $.ajax({
-        url,
+        url: url + (window.lti_context_id ? ('?lti_context_id=' + window.lti_context_id) : ''),
         type: 'POST',
         dataType: 'html',
       }).done(function (data) {
@@ -352,6 +372,16 @@ export class Server {
     });
   }
 
+  staffAssessWithoutSubmission(optionsSelected, criterionFeedback, overallFeedback, studentID, assessType) {
+    return this.submitAssessment('staff_assess_without_submission', {
+      options_selected: optionsSelected,
+      criterion_feedback: criterionFeedback,
+      overall_feedback: overallFeedback,
+      student_id: studentID,
+      assess_type: assessType
+    });
+  }
+
   /**
    * Submit an instructor-provided training example.
    *
@@ -469,6 +499,14 @@ export class Server {
       white_listed_file_types: options.fileTypeWhiteList,
       allow_multiple_files: options.multipleFilesEnabled,
       allow_latex: options.latexEnabled,
+      include_all_learners: options.includeAllLearners,
+      turnitin_enabled: options.turnitinEnabled,
+      turnitin_config: options.turnitinConfig,
+      ungraded: options.ungraded,
+      display_rubric_step_to_students: options.displayRubricStepToStudents,
+      display_grader: options.displayGrader,
+      support_multiple_rubrics: options.supportMultipleRubrics,
+      parent_block_id: options.parentBlock,
       leaderboard_show: options.leaderboardNum,
       teams_enabled: options.teamsEnabled,
       selected_teamset_id: options.selectedTeamsetId,
@@ -525,7 +563,7 @@ export class Server {
         data: JSON.stringify({ contentType, filename, filenum }),
         contentType: jsonContentType,
       }).done(function (data) {
-        if (data.success) { defer.resolve(data.url); } else { defer.rejectWith(this, [data.msg]); }
+        if (data.success) { defer.resolve(data.url, data.content_type); } else { defer.rejectWith(this, [data.msg]); }
       }).fail(function () {
         defer.rejectWith(this, [gettext('Could not retrieve upload url.')]);
       });
@@ -554,13 +592,13 @@ export class Server {
   /**
    * Sends request to server to save descriptions for each uploaded file.
    */
-  saveFilesDescriptions(fileMetadata) {
+  saveFilesDescriptions(fileMetadata, fileNames) {
     const url = this.url('save_files_descriptions');
     return $.Deferred((defer) => {
       $.ajax({
         type: 'POST',
         url,
-        data: JSON.stringify({ fileMetadata }),
+        data: JSON.stringify({ fileMetadata: fileMetadata, file_names: fileNames }),
         contentType: jsonContentType,
       }).done(function (data) {
         if (data.success) { defer.resolve(); } else { defer.rejectWith(this, [data.msg]); }
@@ -703,6 +741,24 @@ export class Server {
       }).fail(function () {
         defer.rejectWith(this, [gettext('Error when looking up username')]);
       });
+    });
+  }
+
+  checkSubmissionUuid(successFn, failureFn) {
+    const url = this.url('get_student_submission_uuid');
+    $.ajax({
+      type: "POST",
+      url: url,
+      data: JSON.stringify({}),
+      contentType: jsonContentType
+    }).done(function(data){
+      if (data.submission_uuid !== null) {
+        successFn();
+      } else {
+        failureFn();
+      }
+    }).fail(function() {
+      failureFn();
     });
   }
 }

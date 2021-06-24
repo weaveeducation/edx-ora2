@@ -12,6 +12,7 @@ Returns:
 export class EditScheduleView {
   constructor(element) {
     this.element = element;
+    this.isAdditionalRubric = $(this.settingsElement).data('is-additional-rubric') === 'True';
 
     // Configure the date and time fields
     this.startDatetimeControl = new DatetimeControl(
@@ -24,6 +25,7 @@ export class EditScheduleView {
       this.element,
       '#openassessment_submission_due_date',
       '#openassessment_submission_due_time',
+      true
     ).install();
   }
 
@@ -67,6 +69,10 @@ export class EditScheduleView {
   validate() {
     // Validate the start and due datetime controls
     let isValid = true;
+
+    if (this.isAdditionalRubric) {
+      return isValid;
+    }
 
     isValid = (this.startDatetimeControl.validate() && isValid);
     isValid = (this.dueDatetimeControl.validate() && isValid);

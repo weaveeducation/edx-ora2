@@ -223,14 +223,7 @@ export class EditRubricView {
      * */
   validate() {
     const criteria = this.getAllCriteria();
-    let isValid = criteria.length > 0;
-    if (!isValid) {
-      this.criterionAddButton
-        .addClass('openassessment_highlighted_field')
-        .click(function () {
-          $(this).removeClass('openassessment_highlighted_field');
-        });
-    }
+    let isValid = true;
 
     $.each(criteria, function () {
       isValid = (this.validate() && isValid);

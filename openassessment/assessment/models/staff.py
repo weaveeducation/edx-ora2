@@ -63,7 +63,7 @@ class StaffWorkflow(models.Model):
         return self.submission_uuid
 
     @classmethod
-    def get_workflow_statistics(cls, course_id, item_id):
+    def get_workflow_statistics(cls, course_id, item_id, **kwargs):
         """
         Returns the number of graded, ungraded, and in-progress submissions for staff grading.
 
@@ -78,22 +78,23 @@ class StaffWorkflow(models.Model):
         timeout = (now() - cls.TIME_LIMIT).strftime("%Y-%m-%d %H:%M:%S")
         ungraded = cls.objects.filter(
             models.Q(grading_started_at=None) | models.Q(grading_started_at__lte=timeout),
-            course_id=course_id, item_id=item_id, grading_completed_at=None, cancelled_at=None
+            course_id=course_id, item_id=item_id, grading_completed_at=None, cancelled_at=None,
+            **kwargs
         ).count()
 
         in_progress = cls.objects.filter(
             course_id=course_id, item_id=item_id, grading_completed_at=None, cancelled_at=None,
-            grading_started_at__gt=timeout
+            grading_started_at__gt=timeout, **kwargs
         ).count()
 
         graded = cls.objects.filter(
-            course_id=course_id, item_id=item_id, cancelled_at=None
+            course_id=course_id, item_id=item_id, cancelled_at=None, **kwargs
         ).exclude(grading_completed_at=None).count()
 
         return {'ungraded': ungraded, 'in-progress': in_progress, 'graded': graded}
 
     @classmethod
-    def get_submission_for_review(cls, course_id, item_id, scorer_id):
+    def get_submission_for_review(cls, course_id, item_id, scorer_id, **kwargs):
         """
         Find a submission for staff assessment. This function will find the next
         submission that requires assessment, excluding any submission that has been
@@ -122,6 +123,7 @@ class StaffWorkflow(models.Model):
                 scorer_id=scorer_id,
                 grading_completed_at=None,
                 cancelled_at=None,
+                **kwargs
             )
             # If no existing submissions exist, then get any other
             # available workflows.
@@ -132,6 +134,7 @@ class StaffWorkflow(models.Model):
                     item_id=item_id,
                     grading_completed_at=None,
                     cancelled_at=None,
+                    **kwargs
                 )
             if not staff_workflows:
                 return None
@@ -152,7 +155,7 @@ class StaffWorkflow(models.Model):
         """
         Assign assessment to workflow, and mark the grading as complete.
         """
-        self.assessment = assessment.id
+        self.assessment = assessment.id if assessment else None
         self.scorer_id = scorer_id
         self.grading_completed_at = now()
         self.save()

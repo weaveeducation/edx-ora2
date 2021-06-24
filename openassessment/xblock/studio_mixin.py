@@ -21,7 +21,7 @@ from openassessment.xblock.data_conversion import (
     make_django_template_key,
     update_assessments_format
 )
-from openassessment.xblock.defaults import DEFAULT_EDITOR_ASSESSMENTS_ORDER, DEFAULT_RUBRIC_FEEDBACK_TEXT
+from openassessment.xblock.defaults import DEFAULT_EDITOR_ASSESSMENTS_ORDER, DEFAULT_RUBRIC_FEEDBACK_TEXT, DEFAULT_DUE
 from openassessment.xblock.resolve_dates import resolve_dates
 from openassessment.xblock.schema import EDITOR_UPDATE_SCHEMA
 from openassessment.xblock.validation import validator
@@ -121,7 +121,7 @@ class StudioMixin:
                 (asmnt.get('start'), asmnt.get('due'))
                 for asmnt in self.valid_assessments
             ],
-            self._
+            self._, self.submission_due_empty
         )
 
         submission_start, submission_due = date_ranges[0]
@@ -132,8 +132,8 @@ class StudioMixin:
         # configured for the XBlock, return one empty default criterion, with
         # an empty default option.
         criteria = copy.deepcopy(self.rubric_criteria_with_labels)
-        if not criteria:
-            criteria = self.DEFAULT_CRITERIA
+        #if not criteria:
+        #    criteria = self.DEFAULT_CRITERIA
 
         # To maintain backwards compatibility, if there is no
         # feedback_default_text configured for the xblock, use the default text
@@ -141,6 +141,12 @@ class StudioMixin:
         if not feedback_default_text:
             feedback_default_text = DEFAULT_RUBRIC_FEEDBACK_TEXT
         course_id = self.location.course_key if hasattr(self, 'location') else None
+        turnitin_settings_display = self.check_turnitin_enabled_in_org()
+
+        parent_block = None
+        parent_ora_blocks = []
+        if self.is_additional_rubric:
+            parent_block, parent_ora_blocks = self.get_parents_and_related_parent_block()
 
         # If allowed file types haven't been explicitly set, load from a preset
         white_listed_file_types = self.get_allowed_file_types_or_preset()
@@ -152,8 +158,10 @@ class StudioMixin:
             'title': self.title,
             'submission_due': submission_due,
             'submission_start': submission_start,
+            'submission_due_empty': self.submission_due_empty,
             'assessments': assessments,
             'criteria': criteria,
+            'rubric_count': len(self.rubric_criteria),
             'feedbackprompt': self.rubric_feedback_prompt,
             'feedback_default_text': feedback_default_text,
             'text_response': self.text_response if self.text_response else '',
@@ -165,6 +173,7 @@ class StudioMixin:
             'allow_multiple_files': self.allow_multiple_files,
             'white_listed_file_types': white_listed_file_types_string,
             'allow_latex': self.allow_latex,
+            'include_all_learners': self.include_all_learners,
             'leaderboard_show': self.leaderboard_show,
             'editor_assessments_order': [
                 make_django_template_key(asmnt)
@@ -174,8 +183,25 @@ class StudioMixin:
             'teams_enabled': self.teams_enabled,
             'base_asset_url': self._get_base_url_path_for_course_assets(course_id),
             'is_released': self.is_released(),
+            'turnitin_settings_display': turnitin_settings_display,
+            'turnitin_enabled': self.turnitin_enabled if turnitin_settings_display else False,
+            'turnitin_display_score': self.turnitin_config.get('display_score',
+                                                               True) if turnitin_settings_display else True,
+            'turnitin_display_link': self.turnitin_config.get('display_link',
+                                                              True) if turnitin_settings_display else True,
+            'turnitin_add_to_index': self.turnitin_config.get('add_to_index',
+                                                              False) if turnitin_settings_display else False,
+            'turnitin_auto_exclude_self_matching_scope': self.turnitin_config.get(
+                'auto_exclude_self_matching_scope', False) if turnitin_settings_display else False,
             'teamsets': self.get_teamsets(course_id),
             'selected_teamset_id': self.selected_teamset_id,
+            'support_multiple_rubrics': self.support_multiple_rubrics,
+            'is_additional_rubric': self.is_additional_rubric,
+            'ungraded': self.ungraded,
+            'display_rubric_step_to_students': self.display_rubric_step_to_students,
+            'display_grader': self.display_grader,
+            'parent_block': parent_block,
+            'parent_ora_blocks': parent_ora_blocks,
             'show_rubric_during_response': self.show_rubric_during_response
         }
 
@@ -198,7 +224,11 @@ class StudioMixin:
         # Validate and sanitize the data using a schema
         # If the data is invalid, this means something is wrong with
         # our JavaScript, so we log an exception.
+        submission_due_empty = False
         try:
+            if not data.get('submission_due'):
+                data['submission_due'] = DEFAULT_DUE
+                submission_due_empty = True
             data = EDITOR_UPDATE_SCHEMA(data)
         except MultipleInvalid:
             logger.exception('Editor context is invalid')
@@ -247,10 +277,14 @@ class StudioMixin:
             data['assessments'],
             submission_start=data['submission_start'],
             submission_due=data['submission_due'],
+            submission_due_empty=submission_due_empty,
             leaderboard_show=data['leaderboard_show']
         )
         if not success:
             return {'success': False, 'msg': self._('Validation error: {error}').format(error=msg)}
+
+        if len(self.rubric_criteria) == 0 and data['support_multiple_rubrics']:
+            return {'success': False, 'msg': self._("ORA without rubrics can't support multiple rubrics")}
 
         # At this point, all the input data has been validated,
         # so we can safely modify the XBlock fields.
@@ -263,23 +297,39 @@ class StudioMixin:
         self.editor_assessments_order = data['editor_assessments_order']
         self.rubric_feedback_prompt = data['feedback_prompt']
         self.rubric_feedback_default_text = data['feedback_default_text']
-        self.submission_start = data['submission_start']
-        self.submission_due = data['submission_due']
-        self.text_response = data['text_response']
-        self.text_response_editor = data['text_response_editor']
-        self.file_upload_response = data['file_upload_response']
-        if data['file_upload_response']:
-            self.file_upload_type = data['file_upload_type']
-            self.white_listed_file_types_string = data['white_listed_file_types']
+
+        if not self.is_additional_rubric:
+            self.submission_start = data['submission_start']
+            self.submission_due = data['submission_due']
+            self.text_response = data['text_response']
+            self.text_response_editor = data['text_response_editor']
+            self.file_upload_response = data['file_upload_response']
+            if data['file_upload_response']:
+                self.file_upload_type = data['file_upload_type']
+                self.white_listed_file_types_string = data['white_listed_file_types']
+            else:
+                self.file_upload_type = None
+                self.white_listed_file_types_string = None
+            self.allow_multiple_files = bool(data['allow_multiple_files'])
+            self.allow_latex = bool(data['allow_latex'])
+            self.include_all_learners = bool(data['include_all_learners'])
+            self.leaderboard_show = data['leaderboard_show']
+            self.teams_enabled = bool(data.get('teams_enabled', False))
+            self.selected_teamset_id = data.get('selected_teamset_id', '')
+            self.show_rubric_during_response = data.get('show_rubric_during_response', False)
+            self.turnitin_enabled = data['turnitin_enabled']
+            self.turnitin_config = data['turnitin_config']
+            self.submission_due_empty = submission_due_empty
+            self.support_multiple_rubrics = bool(data.get('support_multiple_rubrics', False))
+            if self.support_multiple_rubrics and not self.block_unique_id:
+                self.block_unique_id = str(uuid4())
         else:
-            self.file_upload_type = None
-            self.white_listed_file_types_string = None
-        self.allow_multiple_files = bool(data['allow_multiple_files'])
-        self.allow_latex = bool(data['allow_latex'])
-        self.leaderboard_show = data['leaderboard_show']
-        self.teams_enabled = bool(data.get('teams_enabled', False))
-        self.selected_teamset_id = data.get('selected_teamset_id', '')
-        self.show_rubric_during_response = data.get('show_rubric_during_response', False)
+            source_block_unique_id = data.get('parent_block_id')
+            if source_block_unique_id:
+                self.source_block_unique_id = source_block_unique_id
+            self.ungraded = bool(data.get('ungraded'))
+            self.display_rubric_step_to_students = bool(data.get('display_rubric_step_to_students'))
+            self.display_grader = bool(data.get('display_grader'))
 
         return {'success': True, 'msg': self._('Successfully updated OpenAssessment XBlock')}
 

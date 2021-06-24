@@ -55,6 +55,18 @@ class Backend(BaseBackend):
             )
             raise FileUploadInternalError(ex) from ex
 
+    def save_key_content_into_file(self, key, fp):
+        bucket_name, key_name = self._retrieve_parameters(key)
+        conn = _connect_to_s3()
+        conn.download_fileobj(Bucket=bucket_name, Key=key_name, Fileobj=fp)
+
+    def check_key_exists(self, key):
+        bucket_name, key_name = self._retrieve_parameters(key)
+        conn = _connect_to_s3()
+        if object_exists(conn, bucket_name, key_name):
+            return True
+        return False
+
     def remove_file(self, key):
         bucket_name, key_name = self._retrieve_parameters(key)
         conn = _connect_to_s3()

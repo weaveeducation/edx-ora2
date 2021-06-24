@@ -46,6 +46,22 @@ export class CourseItemsListingView {
 
     this._columns = [
       {
+        name: 'chapter_name',
+        label: gettext("Section"),
+        label_summary: gettext("Section"),
+        cell: "string",
+        num: false,
+        editable: false
+      },
+      {
+        name: 'seq_name',
+        label: gettext("Subsection"),
+        label_summary: gettext("Subsection"),
+        cell: "string",
+        num: false,
+        editable: false
+      },
+      {
         name: 'parent_name',
         label: gettext('Unit Name'),
         label_summary: gettext('Units'),
@@ -129,6 +145,8 @@ export class CourseItemsListingView {
     const block = $section.find('.open-response-assessment-block');
     const dataUrl = this.runtime.handlerUrl($section, 'get_ora2_responses');
     const dataRendered = parseInt(block.data('rendered'), 10);
+    const downloadReportLink = $section.find('.open-response-assessment-download-link');
+    downloadReportLink.attr('href', this.runtime.handlerUrl($section, 'download_ora2_responses'));
 
     if (!dataRendered || force) {
       // eslint-disable-next-line new-cap

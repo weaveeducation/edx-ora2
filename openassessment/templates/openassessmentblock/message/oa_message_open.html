@@ -1,6 +1,19 @@
 {% load i18n %}
 {% spaceless %}
 <div id="openassessment__message__{{ xblock_id }}" class="openassessment__message message">
+    {% if is_additional_rubric %}
+        {% if is_studio %}
+        {% if parent_block %}
+        <div class="message__content">
+            <p style="font-weight: bold;">Parent ORA block: {{ parent_block.display_name }}</p>
+        </div>
+        {% else %}
+        <div class="message__content">
+            <p style="color: red;">Parent ORA block is not set</p>
+        </div>
+        {% endif %}
+        {% endif %}
+    {% else %}
     <div class="message__content">
         <p>
             {% if approaching %}
@@ -14,5 +27,6 @@
             {% endif %}
         </p>
     </div>
+    {% endif %}
 </div>
 {% endspaceless %}

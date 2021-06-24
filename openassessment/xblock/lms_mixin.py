@@ -77,6 +77,8 @@ class LmsCompatibilityMixin:
         For LMS Progress page/grades download purposes, we're always going to
         have a score, even if it's just 0 at the start.
         """
+        if self.ungraded:
+            return False
         return True
 
     def max_score(self):
@@ -95,6 +97,8 @@ class LmsCompatibilityMixin:
         10/10 score was earned in the past and the problem has changed since
         then.
         """
+        if len(self.rubric_criteria) == 0:
+            return 1
         return sum(
             max(option["points"] for option in criterion["options"])
             if criterion["options"] else 0

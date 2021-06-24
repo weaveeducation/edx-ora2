@@ -76,12 +76,15 @@ class LeaderboardMixin:
         # Retrieve top scores from the submissions API
         # Since this uses the read-replica and caches the results,
         # there will be some delay in the request latency.
-        scores = sub_api.get_top_submissions(
-            student_item_dict['course_id'],
-            student_item_dict['item_id'],
-            student_item_dict['item_type'],
-            self.leaderboard_show
-        )
+        if self.leaderboard_show and self.leaderboard_show > 0:
+            scores = sub_api.get_top_submissions(
+                student_item_dict['course_id'],
+                student_item_dict['item_id'],
+                student_item_dict['item_type'],
+                self.leaderboard_show
+            )
+        else:
+            scores = []
         for score in scores:
             raw_score_content_answer = score['content']
             answer = OraSubmissionAnswerFactory.parse_submission_raw_answer(raw_score_content_answer)

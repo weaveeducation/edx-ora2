@@ -515,7 +515,7 @@ class FileUploadManager:
         }
 
         if not descriptions:
-            return self._descriptionless_uploads()
+            return self._descriptionless_uploads(descriptions)
 
         file_uploads = []
         for index in range(len(descriptions)):
@@ -532,7 +532,7 @@ class FileUploadManager:
 
         return file_uploads
 
-    def _descriptionless_uploads(self):
+    def _descriptionless_uploads(self, file_descriptions):
         """
         This is the old behavior, required for a corner case and should be eventually removed.
         https://github.com/edx/edx-ora2/pull/1275 closed a loophole that allowed files
@@ -546,6 +546,11 @@ class FileUploadManager:
 
         for index in range(self.block.MAX_FILES_COUNT):
             file_key = get_student_file_key(self.student_item_dict, index)
+
+            try:
+                file_descriptions[index]
+            except IndexError:
+                continue
 
             download_url = ''
             try:

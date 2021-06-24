@@ -1,11 +1,22 @@
 {% load i18n %}
 <div id="openassessment_editor_header">
-    <h6 id="oa_editor_window_title" class="title modal_window_title" >{% trans "Open Response Assessment" %}</h6>
+    <h6 id="oa_editor_window_title" class="title modal_window_title" >
+        {% if is_additional_rubric %}
+        {% trans "Additional Rubric" %}
+        {% else %}
+        {% trans "Open Response Assessment" %}
+        {% endif %}
+    </h6>
     <ul class="editor_modes action_list action_modes editor_tabs">
+        {% if not is_additional_rubric %}
         <li class="view-button oa_editor_tab"><a href="#oa_prompt_editor_wrapper">{% trans "Prompt" %}</a></li>
+        {% else %}
+        <li class="view-button oa_editor_tab"><a href="#oa_prompt_editor_wrapper">{% trans "Parent ORA" %}</a></li>
+        {% endif %}
         <li class="view-button oa_editor_tab"><a href="#oa_rubric_editor_wrapper">{% trans "Rubric" %}</a></li>
+
         <li class="view-button oa_editor_tab"><a href="#oa_schedule_editor_wrapper">{% trans "Schedule" %}</a></li>
-        <li class="view-button oa_editor_tab"><a href="#oa_assessment_steps_editor_wrapper">{% trans "Assessment steps" %}</a></li>
+        <li class="view-button oa_editor_tab assessment_steps_tab" {% if rubric_count == 0 %}style="display: none;"{% endif %}><a href="#oa_assessment_steps_editor_wrapper">{% trans "Assessment steps" %}</a></li>
         <li class="view-button oa_editor_tab"><a href="#oa_settings_editor_wrapper">{% trans "Settings" %}</a></li>
     </ul>
 </div>

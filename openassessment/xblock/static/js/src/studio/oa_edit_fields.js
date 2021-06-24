@@ -180,10 +180,11 @@ export class ToggleControl {
 
  * */
 export class DatetimeControl {
-  constructor(element, datePicker, timePicker) {
+  constructor(element, datePicker, timePicker, disabledValidation) {
     this.element = element;
     this.datePicker = datePicker;
     this.timePicker = timePicker;
+    this.disabledValidation = disabledValidation || false;
   }
 
   /**
@@ -221,7 +222,12 @@ export class DatetimeControl {
     const timePickerSel = $(this.timePicker, this.element);
     if (typeof (dateString) !== 'undefined') { datePickerSel.val(dateString); }
     if (typeof (timeString) !== 'undefined') { timePickerSel.val(timeString); }
-    return `${datePickerSel.val()}T${timePickerSel.val()}`;
+    const r1 = datePickerSel.val();
+    const r2 = timePickerSel.val();
+    if (r1 && r2) {
+      return r1 + "T" + r2;
+    }
+    return "";
   }
 
   /**
@@ -237,6 +243,9 @@ export class DatetimeControl {
 
     // date validation
     let isDateValid = false;
+    if (this.disabledValidation) {
+      return true;
+    }
 
     try {
       const parsedDate = $.datepicker.parseDate($.datepicker.ISO_8601, dateString);

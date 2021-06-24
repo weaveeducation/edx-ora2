@@ -48,6 +48,9 @@ class StudentTrainingMixin:
         if "student-training" not in self.assessment_steps:
             return Response("")
 
+        if len(self.rubric_criteria) == 0:
+            return Response("")
+
         try:
             path, context = self.training_path_and_context()
         except Exception:  # pylint: disable=broad-except
@@ -185,6 +188,12 @@ class StudentTrainingMixin:
                 },
                 examples
             )
+
+            for i, criteria in enumerate(example['rubric']['criteria']):
+                for cr in self.rubric_criteria_with_labels:
+                    if criteria['name'] == cr['name']:
+                        example['rubric']['criteria'][i]['use_grading_key'] = cr.get('use_grading_key', False)
+                        example['rubric']['criteria'][i]['grading_key'] = cr.get('grading_key', None)
 
             training_essay_context, error_message = self._parse_example(example)
             if error_message:

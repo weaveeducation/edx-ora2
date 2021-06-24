@@ -20,6 +20,8 @@ from xblock.core import XBlock
 from xblock.exceptions import NoSuchServiceError
 from xblock.fields import Boolean, Integer, List, Scope, String, Dict
 from web_fragments.fragment import Fragment
+from common.djangoapps.turnitin_integration.service import get_turnitin_key
+from django.utils.html import strip_tags
 
 from openassessment.workflow.errors import AssessmentWorkflowError
 from openassessment.xblock.course_items_listing_mixin import CourseItemsListingMixin
@@ -132,6 +134,7 @@ class OpenAssessmentBlock(MessageMixin,
     ]
 
     public_dir = 'static'
+    parent_block = None
 
     submission_start = String(
         default=DEFAULT_START, scope=Scope.settings,
@@ -141,6 +144,12 @@ class OpenAssessmentBlock(MessageMixin,
     submission_due = String(
         default=DEFAULT_DUE, scope=Scope.settings,
         help="ISO-8601 formatted string representing the submission due date."
+    )
+
+    submission_due_empty = Boolean(
+        default=False,
+        scope=Scope.settings,
+        help="Empty submission due."
     )
 
     text_response_raw = String(
@@ -299,6 +308,18 @@ class OpenAssessmentBlock(MessageMixin,
         help="Should the rubric be visible to learners in the response section?"
     )
 
+    include_all_learners = Boolean(
+        default=False,
+        scope=Scope.settings,
+        help="Include All Enrolled Learners for Grading."
+    )
+
+    saved_file_names = String(
+        default=u"",
+        scope=Scope.user_state,
+        help="Saved file names."
+    )
+
     turnitin_enabled = Boolean(
         default=False,
         scope=Scope.settings,
@@ -362,6 +383,10 @@ class OpenAssessmentBlock(MessageMixin,
         return str(self.xmodule_runtime.course_id)  # pylint: disable=no-member
 
     @property
+    def has_author_view(self):
+        return True
+
+    @property
     def text_response(self):
         """
         Backward compatibility for existing blocks that were created without text_response
@@ -403,6 +428,11 @@ class OpenAssessmentBlock(MessageMixin,
         This property will use new file_upload_type_raw field when available, otherwise will fall back to
         allow_file_upload field for old blocks.
         """
+        if self.is_additional_rubric:
+            parent_block = self.get_parent_block()
+            if parent_block:
+                return parent_block['file_upload_type']
+
         if self.file_upload_type_raw is not None:
             return self.file_upload_type_raw
         if self.allow_file_upload:
@@ -432,6 +462,13 @@ class OpenAssessmentBlock(MessageMixin,
         """
         self.white_listed_file_types = [file_type.strip().strip('.').lower()
                                         for file_type in value.split(',')] if value else None
+
+    def check_include_all_learners(self):
+        if self.is_additional_rubric:
+            parent_block = self.get_parent_block()
+            if parent_block:
+                return parent_block.get('include_all_learners', self.include_all_learners)
+        return self.include_all_learners
 
     def get_anonymous_user_id(self, username, course_id):
         """
@@ -564,6 +601,10 @@ class OpenAssessmentBlock(MessageMixin,
             fragment.add_javascript_url(self.runtime.local_resource_url(self, item))
 
     @togglable_mobile_support
+    def author_view(self, context=None):
+        return self.student_view(context=context)
+
+    @togglable_mobile_support
     def student_view(self, context=None):  # pylint: disable=unused-argument
         """The main view of OpenAssessmentBlock, displayed when viewing courses.
 
@@ -588,6 +629,11 @@ class OpenAssessmentBlock(MessageMixin,
             # Log the exception, but continue loading the page
             logger.exception('An error occurred while updating the workflow on page load.')
 
+        if self.source_block_unique_id:
+            parent_block, parent_ora_blocks = self.get_parents_and_related_parent_block()
+        else:
+            parent_block = None
+
         ui_models = self._create_ui_models()
         # All data we intend to pass to the front end.
         context_dict = {
@@ -595,7 +641,15 @@ class OpenAssessmentBlock(MessageMixin,
             "prompts": self.prompts,
             "prompts_type": self.prompts_type,
             "rubric_assessments": ui_models,
+            "rubric_count": len(self.rubric_criteria),
+            "submission_uuid": self.submission_uuid,
+            "is_additional_rubric": self.is_additional_rubric,
+            "support_multiple_rubrics": self.support_multiple_rubrics,
+            "block_unique_id": self.block_unique_id,
+            "source_block_unique_id": self.source_block_unique_id,
             "show_staff_area": self.is_course_staff and not self.in_studio_preview,
+            "parent_block": parent_block,
+            "is_studio": self.xmodule_runtime.get_real_user is None,
         }
         template = get_template("openassessmentblock/oa_base.html")
         return self._create_fragment(template, context_dict, initialize_js_func='OpenAssessmentBlock')
@@ -766,19 +820,22 @@ class OpenAssessmentBlock(MessageMixin,
         XBlock configuration.
 
         """
-        ui_models = [UI_MODELS["submission"]]
-        staff_assessment_required = False
-        for assessment in self.valid_assessments:
-            if assessment["name"] == "staff-assessment":
-                if not assessment["required"]:
-                    continue
-                staff_assessment_required = True
-            ui_model = UI_MODELS.get(assessment["name"])
-            if ui_model:
-                ui_models.append(dict(assessment, **ui_model))
+        ui_models = []
+        if not self.is_additional_rubric:
+            ui_models.append(UI_MODELS["submission"])
+        if len(self.rubric_criteria) > 0:
+            staff_assessment_required = False
+            for assessment in self.valid_assessments:
+                if assessment["name"] == "staff-assessment":
+                    if not assessment["required"]:
+                        continue
+                    staff_assessment_required = True
+                ui_model = UI_MODELS.get(assessment["name"])
+                if ui_model:
+                    ui_models.append(dict(assessment, **ui_model))
 
-        if not staff_assessment_required and self.staff_assessment_exists(self.submission_uuid):
-            ui_models.append(UI_MODELS["staff-assessment"])
+            if not staff_assessment_required and self.staff_assessment_exists(self.submission_uuid):
+                ui_models.append(UI_MODELS["staff-assessment"])
 
         ui_models.append(UI_MODELS["grade"])
 
@@ -862,7 +919,8 @@ class OpenAssessmentBlock(MessageMixin,
             config['rubric_assessments'],
             submission_start=config['submission_start'],
             submission_due=config['submission_due'],
-            leaderboard_show=config['leaderboard_show']
+            leaderboard_show=config['leaderboard_show'],
+            submission_due_empty=config.get('submission_due_empty', False)
         )
 
         block.rubric_criteria = config['rubric_criteria']
@@ -882,6 +940,16 @@ class OpenAssessmentBlock(MessageMixin,
         block.white_listed_file_types_string = config['white_listed_file_types']
         block.allow_multiple_files = config['allow_multiple_files']
         block.allow_latex = config['allow_latex']
+        block.include_all_learners = config['include_all_learners']
+        block.turnitin_enabled = config['turnitin_enabled']
+        block.turnitin_config = config['turnitin_config']
+        block.block_unique_id = config['block_unique_id']
+        block.source_block_unique_id = config['source_block_unique_id']
+        block.support_multiple_rubrics = config['support_multiple_rubrics']
+        block.is_additional_rubric = config['is_additional_rubric']
+        block.ungraded = config['ungraded']
+        block.display_rubric_step_to_students = config['display_rubric_step_to_students']
+        block.display_grader = config['display_grader']
         block.leaderboard_show = config['leaderboard_show']
         block.group_access = config['group_access']
         block.teams_enabled = config['teams_enabled']
@@ -908,6 +976,12 @@ class OpenAssessmentBlock(MessageMixin,
         Returns:
             list of dict
         """
+        if self.is_additional_rubric:
+            parent_block = self.get_parent_block()
+            if parent_block:
+                return parent_block['prompts']
+            return [{'description': ''}]
+
         return create_prompts_list(self.prompt)
 
     @prompts.setter
@@ -1087,7 +1161,7 @@ class OpenAssessmentBlock(MessageMixin,
 
         # Resolve unspecified dates and date strings to datetimes
         start, due, date_ranges = resolve_dates(
-            self.start, self.due, [submission_range] + assessment_ranges, self._
+            self.start, self.due, [submission_range] + assessment_ranges, self._, self.submission_due_empty
         )
 
         open_range = (start, due)
@@ -1202,6 +1276,19 @@ class OpenAssessmentBlock(MessageMixin,
                 return assessment
         return None
 
+    def get_event_prompts(self):
+        prompts = []
+        for pr in self.prompts:
+            description = pr.get('description', '')
+            if description is None:
+                description = '-'
+            description = strip_tags(description)
+            description = description.strip().replace('|', '')
+            if len(description) > 5000:
+                description = '-too-long-html-'
+            prompts.append({'description': description})
+        return prompts
+
     def publish_assessment_event(self, event_name, assessment, **kwargs):
         """
         Emit an analytics event for the peer assessment.
@@ -1222,13 +1309,14 @@ class OpenAssessmentBlock(MessageMixin,
             option_dict = None
             if part["option"] is not None:
                 option_dict = {
-                    "name": part["option"]["name"],
+                    "name": part["option"].get("label") or part["option"]["name"],
                     "points": part["option"]["points"],
                 }
 
             # All assessment parts are associated with criteria
             criterion_dict = {
-                "name": part["criterion"]["name"],
+                "name": part["criterion"]["label"] if "label" in part["criterion"] \
+                                                      and part["criterion"]["label"] else part["criterion"]["name"],
                 "points_possible": part["criterion"]["points_possible"]
             }
 
@@ -1247,7 +1335,12 @@ class OpenAssessmentBlock(MessageMixin,
             "score_type": assessment["score_type"],
             "scored_at": assessment["scored_at"],
             "submission_uuid": assessment["submission_uuid"],
-            "parts": parts_list
+            "parts": parts_list,
+            "prompts": self.get_event_prompts(),
+            "answer": assessment.get("answer", {}),
+            "support_multiple_rubrics": self.support_multiple_rubrics,
+            "is_additional_rubric": self.is_additional_rubric,
+            "ungraded": self.ungraded
         }
 
         for key in kwargs:
@@ -1375,6 +1468,48 @@ class OpenAssessmentBlock(MessageMixin,
         xblock_body["content_type"] = "ORA"
 
         return xblock_body
+
+    def check_turnitin_enabled_in_org(self):
+        if hasattr(self, 'location'):
+            key = get_turnitin_key(self.location.course_key.org)
+            if key:
+                return True
+        return False
+
+    def get_parent_block(self):
+        if not self.parent_block:
+            parent_block, parent_ora_blocks = self.get_parents_and_related_parent_block()
+            self.parent_block = parent_block
+        return self.parent_block
+
+    def get_parents_and_related_parent_block(self):
+        parent_ora_blocks = []
+        parent_block = None
+
+        if self.is_additional_rubric:
+            parent = self.get_parent()
+            for p in parent.get_children():
+                if p.category == 'openassessment' and p.support_multiple_rubrics and p.block_unique_id:
+                    item = {
+                        'id': p.block_unique_id,
+                        'usage_id': str(p.location),
+                        'display_name': p.display_name,
+                        'selected': False
+                    }
+                    if self.source_block_unique_id and self.source_block_unique_id == p.block_unique_id:
+                        item['selected'] = True
+                        parent_block = {
+                            'id': p.block_unique_id,
+                            'usage_id': str(p.location),
+                            'display_name': p.display_name,
+                            'prompts': p.prompts,
+                            'file_upload_type': p.file_upload_type,
+                            'turnitin_enabled': p.turnitin_enabled,
+                            'include_all_learners': p.include_all_learners
+                        }
+                    parent_ora_blocks.append(item)
+
+        return parent_block, parent_ora_blocks
 
     def is_hidden(self):
         if self.is_additional_rubric and not self.display_rubric_step_to_students and not self.is_course_staff:

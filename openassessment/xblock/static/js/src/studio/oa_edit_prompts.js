@@ -17,6 +17,13 @@ export class EditPromptsView {
     this.editorElement = $(this.element).closest('#openassessment-editor');
     this.addRemoveEnabled = this.editorElement.attr('data-is-released') !== 'true';
 
+    this.selectParentBlock = null;
+
+    const selectParentItems = $('.oa_editor_select_parent', this.element);
+    if (selectParentItems.length > 0) {
+      this.selectParentBlock = selectParentItems.get(0);
+    }
+
     this.promptsContainer = new Container(
       Prompt, {
         containerElement: $('#openassessment_prompts_list', this.element).get(0),
@@ -50,6 +57,9 @@ export class EditPromptsView {
 
      * */
   promptsDefinition() {
+    if (this.selectParentBlock !== null) {
+      return [{'description': ''}];
+    }
     const prompts = this.promptsContainer.getItemValues();
     return prompts;
   }
@@ -141,6 +151,13 @@ export class EditPromptsView {
      Clear all validation errors from the UI.
      * */
   clearValidationErrors() {}
+
+  getParentBlock() {
+    if (this.selectParentBlock) {
+      return $(this.selectParentBlock).val();
+    }
+    return null;
+  }
 }
 
 export default EditPromptsView;
