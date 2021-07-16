@@ -107,6 +107,9 @@
         var dataUrl = this.runtime.handlerUrl($section, 'get_ora2_responses');
         var dataRendered = parseInt(block.data('rendered'));
 
+        var downloadReportLink = $section.find('.open-response-assessment-download-link');
+        downloadReportLink.attr('href', this.runtime.handlerUrl($section, 'download_ora2_responses'));
+
         if (!dataRendered || force) {
             // eslint-disable-next-line new-cap
             return $.Deferred(

@@ -232,7 +232,7 @@ def get_assessment_scores_by_criteria(submission_uuid):
         raise StaffAssessmentInternalError(error_message)
 
 
-def get_submission_to_assess(course_id, item_id, scorer_id):
+def get_submission_to_assess(course_id, item_id, scorer_id, **kwargs):
     """
     Get a submission for staff evaluation.
 
@@ -263,7 +263,7 @@ def get_submission_to_assess(course_id, item_id, scorer_id):
         }
 
     """
-    student_submission_uuid = StaffWorkflow.get_submission_for_review(course_id, item_id, scorer_id)
+    student_submission_uuid = StaffWorkflow.get_submission_for_review(course_id, item_id, scorer_id, **kwargs)
     if student_submission_uuid:
         try:
             submission_data = submissions_api.get_submission(student_submission_uuid)
@@ -285,7 +285,7 @@ def get_submission_to_assess(course_id, item_id, scorer_id):
         return None
 
 
-def get_staff_grading_statistics(course_id, item_id):
+def get_staff_grading_statistics(course_id, item_id, **kwargs):
     """
     Returns the number of graded, ungraded, and in-progress submissions for staff grading.
 
@@ -296,7 +296,7 @@ def get_staff_grading_statistics(course_id, item_id):
     Returns:
         dict: a dictionary that contains the following keys: 'graded', 'ungraded', and 'in-progress'
     """
-    return StaffWorkflow.get_workflow_statistics(course_id, item_id)
+    return StaffWorkflow.get_workflow_statistics(course_id, item_id, **kwargs)
 
 
 def create_assessment(
