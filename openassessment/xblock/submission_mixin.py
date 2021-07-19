@@ -995,7 +995,11 @@ class SubmissionMixin:
             context['team_file_urls'] = self.file_manager.team_file_descriptors(
                 team_id=team_id_for_current_submission
             )
-            context['white_listed_file_types'] = ['.' + ext for ext in self.get_allowed_file_types_or_preset()]
+            white_listed_file_types = self.get_allowed_file_types_or_preset()
+            if white_listed_file_types:
+                context['white_listed_file_types'] = ['.' + ext for ext in white_listed_file_types]
+            else:
+                context['white_listed_file_types'] = []
 
         if not workflow and problem_closed:
             if reason == 'due':
