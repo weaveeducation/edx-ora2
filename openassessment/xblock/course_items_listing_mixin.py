@@ -97,6 +97,23 @@ class CourseItemsListingMixin:
                 parent_name = parents[result_item_id][0].display_name
                 ora_item_dict = ora_responses.get(result_item_id, {})
 
+                if len(block.rubric_criteria) == 0:
+                    final_num = final_num + 1
+                    sheet.append([
+                        chapter_name,
+                        seq_name,
+                        parent_name,
+                        assessment_name,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                    ])
+                    continue
+
                 training_val = ora_item_dict.get('training', 0)
                 peer_val = ora_item_dict.get('peer', 0)
                 self_val = ora_item_dict.get('self', 0)

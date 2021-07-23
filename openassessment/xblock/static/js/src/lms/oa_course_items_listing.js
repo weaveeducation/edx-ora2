@@ -183,7 +183,7 @@ export class CourseItemsListingView {
         oraItem[step] = 0;
       });
 
-      if (itemId in data) {
+      if ((itemId in data) && (!oraItem.is_ora_empty_rubrics)) {
         _.extend(oraItem, data[itemId]);
         if (oraItem.staff_assessment) {
           oraItem.staff = oraItem.waiting;
@@ -191,9 +191,11 @@ export class CourseItemsListingView {
         }
       }
 
-      $.each(oraSteps, (j, step) => {
-        total += oraItem[step];
-      });
+      if (!oraItem.is_ora_empty_rubrics) {
+        $.each(oraSteps, (j, step) => {
+          total += oraItem[step];
+        });
+      }
 
       oraItem.total = total;
     });
