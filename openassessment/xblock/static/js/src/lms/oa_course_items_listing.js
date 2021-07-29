@@ -191,13 +191,16 @@ export class CourseItemsListingView {
         }
       }
 
-      if (!oraItem.is_ora_empty_rubrics) {
+      if (oraItem.is_ora_empty_rubrics) {
+        oraItem.total = data[itemId].total;
+      } else {
         $.each(oraSteps, (j, step) => {
           total += oraItem[step];
         });
+
+        oraItem.total = total;
       }
 
-      oraItem.total = total;
     });
 
     block.data('rendered', 1);
