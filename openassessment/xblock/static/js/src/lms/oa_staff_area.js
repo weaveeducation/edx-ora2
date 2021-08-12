@@ -313,7 +313,7 @@ export class StaffAreaView {
       });
     }
 
-    loadStudentAndStatuses(studentEmail) {
+    loadStudentAndStatuses(fnCallback) {
       const view = this;
       const $staffArea = $('.openassessment__staff-area', this.element);
       view.server.studentStatuses().done(function(studentsLst) {
@@ -321,21 +321,26 @@ export class StaffAreaView {
         html += '<thead><tr><th>Email</th><th>Username</th><th>Name</th><th>Step</th><th></th></tr></thead>';
         html += '<tbody>';
         $.each(studentsLst, function(idx, val) {
-          let style = '';
-          if (val.email === studentEmail) {
-            style = "font-weight:700; color: #2dd52d;";
-          }
-          html += '<tr>';
-          html += '<td style="' + style + '">' + val.email + '</td>';
-          html += '<td style="' + style + '">' + val.username + '</td>';
-          html += '<td style="' + style + '">' + val.name + '</td>';
-          html += '<td style="' + style + '">' + val.status + '</td>';
+          html += '<tr data-email="' + val.email + '">';
+          html += '<td>' + val.email + '</td>';
+          html += '<td>' + val.username + '</td>';
+          html += '<td>' + val.name + '</td>';
+          html += '<td>' + val.status + '</td>';
           html += '<td><a href="javascript: void(0);" data-status="' + val.status + '" data-email="' + val.email + '" style="color: #31acee;" class="submit-assessment">Manage</a></td></tr>';
         });
         html += '</tbody>';
         html += '</table>';
         $staffArea.find('.staff-manage-learner-content').html(html);
+        if (fnCallback) {
+          fnCallback(studentsLst);
+        }
       });
+    }
+
+    highlightStudentInList(studentEmail) {
+      const $staffTable = $('.staff-info__status__table', this.element);
+      const $studentRow = $staffTable.find('tr[data-email="' + studentEmail + '"]');
+      $studentRow.find('td').css({fontWeight: 700, color: '#2dd52d'});
     }
 
     /**
@@ -362,7 +367,24 @@ export class StaffAreaView {
         view.loadStudentInfo(classToExpand, studentEmail, 'openassessment__staff-manage-learner', function() {
           $staffArea.find('.staff-manage-learner-content').html('Loading...');
           $staffArea.find('.openassessment__student-info').html('');
-          view.loadStudentAndStatuses(studentEmail);
+          view.loadStudentAndStatuses(function(studentsLst) {
+            view.highlightStudentInList(studentEmail);
+
+            const studentIndex = studentsLst.findIndex(function(student) {
+              return student.email === studentEmail;
+            });
+
+            const nextStudent = studentsLst
+              .slice(studentIndex + 1)
+              .concat(studentsLst.slice(0, studentIndex + 1))
+              .find(function(student) {
+                return student.status === 'waiting';
+              });
+
+            if (nextStudent) {
+              view.loadStudentInfo(classToExpand, nextStudent.email, 'openassessment__staff-manage-learner');
+            }
+          });
         });
       });
 
