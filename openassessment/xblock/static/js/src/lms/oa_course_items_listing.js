@@ -192,7 +192,11 @@ export class CourseItemsListingView {
       }
 
       if (oraItem.is_ora_empty_rubrics) {
-        oraItem.total = data[itemId].total;
+        if (itemId in data) {
+          oraItem.total = data[itemId].total;
+        } else {
+          oraItem.total = 0;
+        }
       } else {
         $.each(oraSteps, (j, step) => {
           total += oraItem[step];
