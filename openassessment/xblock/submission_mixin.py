@@ -466,6 +466,7 @@ class SubmissionMixin:
                 "submitted_at": submission["submitted_at"],
                 "answer": submission["answer"],
                 "rubric_count": len(self.rubric_criteria),
+                "rubrics": self.rubric_criteria,
                 "prompts": self.get_event_prompts(),
                 "support_multiple_rubrics": self.support_multiple_rubrics,
                 "is_additional_rubric": self.is_additional_rubric,
