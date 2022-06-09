@@ -1,6 +1,25 @@
 {% load i18n %}
 {% spaceless %}
 <div id="oa_prompts_editor_wrapper" class="oa_editor_content_wrapper">
+    {% if is_additional_rubric %}
+    <div class="wrapper-comp-settings">
+        <ul class="list-input settings-list">
+            <li class="field comp-setting-entry">
+            <label for="ora_parent_block" class="setting-label">{% trans "Choose ORA parent block from the current Unit" %}</label>
+            {% if parent_ora_blocks %}
+            <select class="input setting-input oa_editor_select_parent" id="ora_parent_block">
+                <option value="">{% trans "Not selected" %}</option>
+            {% for parent_option in parent_ora_blocks %}
+                <option value="{{ parent_option.id }}" {% if parent_option.selected %}selected="true"{% endif %}>{{ parent_option.display_name }}</option>
+            {% endfor %}
+            </select>
+            {% else %}
+                <span style="color: red">Parent ORA blocks not found (must be set as "Support Multiple Rubrics")</span>
+            {% endif %}
+            </li>
+        </ul>
+    </div>
+    {% else %}
     <div id="openassessment_prompt_template" class="is--hidden" data-base-asset-url="{{ base_asset_url }}">
         {% include "openassessmentblock/edit/oa_edit_prompt.html" with prompt_uuid="" prompt_description="" %}
     </div>
@@ -22,5 +41,6 @@
             {% trans "Add Prompt" %}
         </h6>
     </div>
+    {% endif %}
 </div>
 {% endspaceless %}

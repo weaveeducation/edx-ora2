@@ -15,7 +15,7 @@ Returns:
 
 */
 export class FileUploader {
-  upload(url, file) {
+  upload(url, file, contentType) {
     // eslint-disable-next-line new-cap
     return $.Deferred((defer) => {
       $.ajax({
@@ -24,7 +24,7 @@ export class FileUploader {
         data: file,
         async: false,
         processData: false,
-        contentType: file.type,
+        contentType: contentType ? contentType : file.type,
         headers: { 'Content-Disposition': `attachment; filename*=UTF-8''${this.encodeRFC5987ValueChars(file.name)}` },
       }).done(() => {
         // Log an analytics event

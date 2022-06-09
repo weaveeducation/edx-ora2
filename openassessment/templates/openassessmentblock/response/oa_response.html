@@ -40,7 +40,7 @@
             <span id="oa_step_deadline_response" class="date ora-datetime" data-datetime="{{ start_date }}" data-string="available {date} (in {{ time_until }})" data-timezone="{{ user_timezone }}" data-language="{{ user_language }}"></span>
             {% endblocktrans %}
         </span>
-        {% elif submission_due %}
+        {% elif submission_due and not submission_due_empty %}
         <span class="step__deadline">
             {# Translators: This string displays a date to the user, then tells them the time until that date.  Example: "due August 13th, 2014 (in 5 days and 45 minutes)" #}
             {% blocktrans with due_date=submission_due|timezone:"UTC"|date:"c" time_until=submission_due|timeuntil %}
@@ -87,7 +87,7 @@
                     </strong>.
                   {% else %}
                     {% trans "Enter your response to the prompt." %}
-                    {% if submission_due %}
+                    {% if submission_due and not submission_due_empty %}
                       {% blocktrans %}
                         You can save your progress and return to complete your response at any time before the due date
                       {% endblocktrans %}
@@ -327,11 +327,18 @@
 
                 <ul class="list list--actions">
                     <li class="list--actions__item">
+                        {% if turnitin_eula %}
+                        With pushing "Submit" button you automatically agree with <a href="{{ turnitin_eula }}" target="_blank">EULA</a>
+                        {% endif %}
                         <button type="submit" class="action action--submit step--response__submit"
                                 text_response="{{text_response}}"
                                 file_upload_response="{{file_upload_response}}"
                                 {{submit_enabled|yesno:",disabled" }}>
+                            {% if rubric_count == 0 %}
+                            {% trans "Submit your response" %}
+                            {% else %}
                             {% trans "Submit your response and move to the next step" %}
+                            {% endif %}
                         </button>
                     </li>
                 </ul>
@@ -344,4 +351,7 @@
     </div>
     {% endblock %}
 </li>
+
+{% block turnitin %}
+{% endblock %}
 {% endspaceless %}

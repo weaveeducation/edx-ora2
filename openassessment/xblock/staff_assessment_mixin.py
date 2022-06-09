@@ -13,6 +13,7 @@ from openassessment.assessment.api import (
     teams as teams_api
 )
 from openassessment.assessment.errors import StaffAssessmentInternalError, StaffAssessmentRequestError
+from openassessment.assessment.models import StaffWorkflow
 from openassessment.workflow import (
     api as workflow_api,
     team_api as team_workflow_api
@@ -44,24 +45,35 @@ class StaffAssessmentMixin:
         publishes a openassessmentblock.staff_assess tracking event
         updates the assessed submission's workflow
         """
+        from submissions import api as submission_api
+
         if 'submission_uuid' not in data:
             return False, self._("The submission ID of the submission being assessed was not found.")
         try:
-            assessment = staff_api.create_assessment(
-                data['submission_uuid'],
-                self.get_student_item_dict()["student_id"],
-                data['options_selected'],
-                clean_criterion_feedback(self.rubric_criteria, data['criterion_feedback']),
-                data['overall_feedback'],
-                create_rubric_dict(self.prompts, self.rubric_criteria_with_labels)
-            )
-            assess_type = data.get('assess_type', 'regrade')
-            self.publish_assessment_event("openassessmentblock.staff_assess", assessment, type=assess_type)
-            workflow_api.update_from_assessments(
-                assessment["submission_uuid"],
-                None,
-                override_submitter_requirements=(assess_type == 'regrade')
-            )
+            if len(self.rubric_criteria) > 0:
+                assessment = staff_api.create_assessment(
+                    data['submission_uuid'],
+                    self.get_student_item_dict()["student_id"],
+                    data['options_selected'],
+                    clean_criterion_feedback(self.rubric_criteria, data['criterion_feedback']),
+                    data['overall_feedback'],
+                    create_rubric_dict(self.prompts, self.rubric_criteria_with_labels)
+                )
+                assess_type = data.get('assess_type', 'regrade')
+
+                submission_dict = submission_api.get_submission(data['submission_uuid'])
+                if 'answer' in submission_dict:
+                    assessment['answer'] = submission_dict['answer'].copy()
+
+                self.publish_assessment_event("openassessmentblock.staff_assess", assessment, type=assess_type)
+                workflow_api.update_from_assessments(
+                    assessment["submission_uuid"],
+                    None,
+                    override_submitter_requirements=(assess_type == 'regrade')
+                )
+            else:
+                staff_api.close_without_assessment(data['submission_uuid'],
+                                                   self.get_student_item_dict()["student_id"])
         except StaffAssessmentRequestError:
             logger.warning(
                 "An error occurred while submitting a staff assessment "
@@ -183,6 +195,67 @@ class StaffAssessmentMixin:
         else:
             return {'success': True, 'msg': ''}
 
+    @XBlock.json_handler
+    @require_course_staff("STUDENT_INFO")
+    @verify_assessment_parameters
+    def staff_assess_without_submission(self, data, suffix=''):  # pylint: disable=unused-argument
+        """
+        Create a staff submission and staff assessment for a student.
+        """
+
+        if 'student_id' not in data:
+            return {
+                'success': False, 'msg': self._("The student ID was not found.")
+            }
+
+        student_id = data.get('student_id')
+        student_item = self.get_student_item_dict(student_id)
+        submission = self.create_submission(student_item, ['N/A'], True)
+        submission_uuid = submission['uuid']
+
+        try:
+            if len(self.rubric_criteria) > 0:
+                assessment = staff_api.create_assessment(
+                    submission_uuid,
+                    self.get_student_item_dict()["student_id"],
+                    data['options_selected'],
+                    clean_criterion_feedback(self.rubric_criteria, data['criterion_feedback']),
+                    data['overall_feedback'],
+                    create_rubric_dict(self.prompts, self.rubric_criteria_with_labels)
+                )
+                assess_type = data.get('assess_type', 'regrade')
+
+                submission_dict = self.get_user_submission(submission_uuid)
+                if 'answer' in submission_dict:
+                    assessment['answer'] = submission_dict['answer'].copy()
+
+                self.publish_assessment_event("openassessmentblock.staff_assess", assessment, type=assess_type)
+                workflow_api.update_from_assessments(
+                    assessment["submission_uuid"],
+                    None,
+                    override_submitter_requirements=(assess_type == 'regrade')
+                )
+            else:
+                staff_api.close_without_assessment(submission_uuid, self.get_student_item_dict()["student_id"])
+
+        except StaffAssessmentRequestError:
+            logger.warning(
+                "An error occurred while creating a stuff submission and "
+                "submitting a staff assessment for the student {}".format(student_id),
+                exc_info=True
+            )
+            msg = self._("Your staff assessment could not be submitted.")
+            return {'success': False, 'msg': msg}
+        except StaffAssessmentInternalError:
+            logger.exception(
+                "An error occurred while creating a stuff submission and "
+                "submitting a staff assessment for the student {}".format(student_id),
+            )
+            msg = self._("Your staff assessment could not be submitted.")
+            return {'success': False, 'msg': msg}
+        else:
+            return {'success': True, 'msg': ""}
+
     @XBlock.handler
     def render_staff_assessment(self, data, suffix=''):  # pylint: disable=unused-argument
         """
@@ -197,6 +270,23 @@ class StaffAssessmentMixin:
 
         return self.render_assessment(path, context_dict)
 
+    def get_scorer_name(self, submission_uuid):
+        from common.djangoapps.student.models import AnonymousUserId
+        scorer_name = None
+        if submission_uuid:
+            staff_workflow = StaffWorkflow.objects.get(submission_uuid=submission_uuid)
+            anon_user = AnonymousUserId.objects.select_related('user').filter(
+                course_id=self.location.course_key, anonymous_user_id=staff_workflow.scorer_id).first()
+            if anon_user:
+                scorer = anon_user.user
+                scorer_name = scorer.first_name + ' ' + scorer.last_name
+                scorer_name = scorer_name.strip()
+                if scorer_name:
+                    scorer_name = scorer_name + ', ' + scorer.email
+                else:
+                    scorer_name = scorer.email
+        return scorer_name
+
     def staff_path_and_context(self):
         """
         Retrieve the correct template path and template context for the handler to render.
@@ -209,6 +299,7 @@ class StaffAssessmentMixin:
             'button_active': 'disabled=disabled aria-expanded=false',
             'step_classes': 'is--unavailable',
         }
+        scorer_name = None
 
         if status == 'cancelled':
             context = {
@@ -218,6 +309,8 @@ class StaffAssessmentMixin:
                 'button_active': 'disabled=disabled aria-expanded=false',
             }
         elif status == 'done':  # Staff grade exists and all steps completed.
+            submission_uuid = workflow.get('submission_uuid')
+            scorer_name = self.get_scorer_name(submission_uuid)
             context = {
                 'status_value': self._('Complete'),
                 'icon_class': 'fa-check',
@@ -254,5 +347,6 @@ class StaffAssessmentMixin:
             else:  # Both student and staff still have work to do, just show "Not Available".
                 context = not_available_context
 
+        context['scorer_name'] = scorer_name
         context['xblock_id'] = self.get_xblock_id()
         return path, context

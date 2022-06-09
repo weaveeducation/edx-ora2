@@ -231,7 +231,7 @@ def get_assessment_scores_by_criteria(submission_uuid):
         raise StaffAssessmentInternalError(error_message) from ex
 
 
-def get_submission_to_assess(course_id, item_id, scorer_id):
+def get_submission_to_assess(course_id, item_id, scorer_id, **kwargs):
     """
     Get a submission for staff evaluation.
 
@@ -262,7 +262,7 @@ def get_submission_to_assess(course_id, item_id, scorer_id):
         }
 
     """
-    student_submission_uuid = StaffWorkflow.get_submission_for_review(course_id, item_id, scorer_id)
+    student_submission_uuid = StaffWorkflow.get_submission_for_review(course_id, item_id, scorer_id, **kwargs)
     if student_submission_uuid:
         try:
             submission_data = submissions_api.get_submission(student_submission_uuid)
@@ -278,7 +278,7 @@ def get_submission_to_assess(course_id, item_id, scorer_id):
         return None
 
 
-def get_staff_grading_statistics(course_id, item_id):
+def get_staff_grading_statistics(course_id, item_id, **kwargs):
     """
     Returns the number of graded, ungraded, and in-progress submissions for staff grading.
 
@@ -289,7 +289,7 @@ def get_staff_grading_statistics(course_id, item_id):
     Returns:
         dict: a dictionary that contains the following keys: 'graded', 'ungraded', and 'in-progress'
     """
-    return StaffWorkflow.get_workflow_statistics(course_id, item_id)
+    return StaffWorkflow.get_workflow_statistics(course_id, item_id, **kwargs)
 
 
 def create_assessment(
@@ -380,6 +380,15 @@ def create_assessment(
         ).format(scorer_id)
         logger.exception(error_message)
         raise StaffAssessmentInternalError(error_message) from ex
+
+
+@transaction.atomic
+def close_without_assessment(submission_uuid, scorer_id):
+    try:
+        scorer_workflow = StaffWorkflow.objects.get(submission_uuid=submission_uuid)
+        scorer_workflow.close_active_assessment(None, scorer_id)
+    except StaffWorkflow.DoesNotExist:
+        pass
 
 
 @transaction.atomic

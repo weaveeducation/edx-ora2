@@ -72,6 +72,8 @@ update-npm-requirements: ## update NPM requrements
 
 static: ## Webpack JavaScript and SASS source files
 	npm run dev && npm run build
+	cp openassessment/xblock/static/dist/*.js openassessment/xblock/static/js
+	cp openassessment/xblock/static/dist/*.js.map openassessment/xblock/static/js
 
 ################
 #Translations Handling

@@ -244,14 +244,14 @@ def make_django_template_key(key):
     return key.replace('-', '_')
 
 
-def _verify_assessment_data(_, data):
+def _verify_assessment_data(_, data, instance):
     if not isinstance(data, dict):
         return _('Assessment data must be a dictionary/object')
 
     if 'options_selected' not in data:
         return _('You must provide options selected in the assessment.')
 
-    if 'overall_feedback' not in data:
+    if len(instance.rubric_criteria) > 0 and 'overall_feedback' not in data:
         return _('You must provide overall feedback in the assessment.')
 
     if 'criterion_feedback' not in data:
@@ -275,7 +275,7 @@ def verify_assessment_parameters(func):
     def verify_and_call(instance, data, suffix):
         """ Inner Method. """
         # Validate the request
-        msg = _verify_assessment_data(instance._, data)
+        msg = _verify_assessment_data(instance._, data, instance)
         if msg:
             return {'success': False, 'msg': msg}
 
@@ -301,7 +301,7 @@ def verify_multiple_assessment_parameters(func):
             return {'success': False, 'msg': instance._('This view takes only a list as a parameter')}
         errors = {}
         for assessment_index, assessment in enumerate(data):
-            msg = _verify_assessment_data(instance._, assessment)
+            msg = _verify_assessment_data(instance._, assessment, instance)
             if msg:
                 errors[assessment_index] = msg
 

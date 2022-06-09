@@ -104,6 +104,26 @@ export class StudentTrainingListener {
     }
   }
 
+  changeAllOptions(data) {
+    if (this._optionSel(data.criterionName).length === 0) {
+      this.criterionAdd(data);
+    }
+
+    this._optionSel(data.criterionName).each(function() {
+      let criterion = this;
+      $(criterion).empty();
+      let option = null;
+      $(criterion).append('<option value="">' + gettext('Not Selected') + '</option>');
+      if (data.options) {
+        for (let i = 0; i <= data.options; i++) {
+          option = $("<option></option>").attr("value", i).attr("data-points", i).attr("data-label", '');
+          ItemUtilities.refreshOptionString(option);
+          $(criterion).append(option);
+        }
+      }
+    });
+  }
+
   /**
      Event handler for when an option is removed from a criterion on the rubric.
      Training examples will be updated accordingly when this occurs, and the

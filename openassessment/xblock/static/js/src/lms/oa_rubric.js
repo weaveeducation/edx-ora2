@@ -10,6 +10,7 @@ Returns:
 export class Rubric {
   constructor(element) {
     this.element = element;
+    this.initNumberInputFields();
   }
 
   /**
@@ -44,6 +45,21 @@ export class Rubric {
       },
     );
     return feedback;
+  }
+
+  initNumberInputFields() {
+    $('input[type=number]', this.element).each(function() {
+      $(this).focusout(function() {
+        const val = $(this).val();
+        const maxVal = parseInt($(this).data('max'), 10);
+        if (parseInt(val, 10) < 0) {
+          $(this).val(0);
+        }
+        if (parseInt(val, 10) > maxVal) {
+          $(this).val(maxVal);
+        }
+      });
+    });
   }
 
   /**
@@ -97,6 +113,11 @@ export class Rubric {
           options[rubric.getCriterionName(sel)] = sel.value;
         },
       );
+      $('input[type=number]', this.element).each(
+        function() {
+          options[rubric.getCriterionName($(this))] = $(this).val().toString();
+        }
+      );
       return options;
     }
     // Uncheck all the options
@@ -142,7 +163,12 @@ export class Rubric {
 
     * */
   canSubmit() {
-    const numChecked = $('input[type=radio]:checked', this.element).length;
+    let numChecked = $('input[type=radio]:checked', this.element).length;
+    $('input[type=number]', this.element).each(function() {
+      if ($(this).val() != '') {
+        numChecked += 1;
+      }
+    });
     const numAvailable = $('.field--radio.assessment__rubric__question.has--options', this.element).length;
     let completedRequiredComments = true;
     $('textarea[required]', this.element).each(function () {

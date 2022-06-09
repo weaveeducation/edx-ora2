@@ -97,6 +97,27 @@
         color: $white;
       }
     }
+
+    .ui-list_learners_close_button {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      float: right;
+      background-color: $staff-bg;
+
+      // Remove button styling
+      font-size: 12px;
+      -webkit-appearance: none;
+      background-image: none;
+      text-shadow: none;
+      box-shadow: none;
+      border: none;
+      border-image: none;
+
+      &:hover {
+        color: $white;
+      }
+    }
   }
 }
 
@@ -680,7 +701,7 @@
 
     // Rubric cloning section
     #openassessment_rubric_clone {
-      @include rubric-reuse-jquery-ui;    
+      @include rubric-reuse-jquery-ui;
       .ui-accordion-header {
         padding: 5px;
         font-weight: 500;
@@ -714,7 +735,7 @@
 
       .ui-accordion-content {
         overflow: visible;
-        
+
         #openassessment_rubric_clone_form_container {
           display: flex;
 
@@ -747,7 +768,7 @@
           }
           #openassessment_rubric_clone_button_container {
             flex: 3;
-            
+
             #openassessment_rubric_clone_button {
               margin-top: 0;
               float: left;
@@ -764,7 +785,7 @@
           margin: 5px 0;
         }
       }
-    } 
+    }
 
     .openassessment_criterion {
 
@@ -804,6 +825,10 @@
 
               input{
                 font-size: 11px;
+                @include float(right);
+                width: 70%;
+              }
+              select{
                 @include float(right);
                 width: 70%;
               }
@@ -1256,19 +1281,19 @@
             @extend %t-heading;
             @include margin-left(($baseline-h/4));
             white-space: pre-wrap;
-            display: inline; 
+            display: inline;
         }
 
         // fields
         .assessment__fields {
           margin-bottom: $baseline-v;
         }
-    
+
         // rubric question
         .assessment__rubric__question {
           @extend %ui-rubric-question;
         }
-    
+
         // rubric options
         .question__answers {
           @extend %ui-rubric-answers;

@@ -1,0 +1,52 @@
+{% load i18n %}
+{% load tz %}
+
+<div class="openassessment__student-info staff-info__student__report"
+     data-student-id="{{ student_id }}">
+
+    <h2 class="title">
+        <span class="label staff-info__student__report__summary" tabindex="-1">
+            {% blocktrans with learner=student_username %}
+                Viewing learner: {{ learner }}
+            {% endblocktrans %}
+        </span>
+    </h2>
+
+    <div class="staff-info__status ui-staff__content__section wrapper--ui--collapse staff-info__student__response ui-slidable__container is--initially--collapsed ">
+        <div class="ui-slidable__control">
+            <button class="ui-staff ui-slidable" aria-controls="learner_response_content_{{ student_id }}" aria-expanded="false" id="learner_response_{{ student_id }}">
+                <h2 class="staff-info__title ui-staff__subtitle">
+                    <span class="icon fa fa-caret-right" aria-hidden="true"></span>
+                    <span>{% trans "Learner's Response" %}</span>
+                </h2>
+            </button>
+        </div>
+        <div class="ui-slidable__content" role="group" id="learner_response_content_{{ student_id }}" aria-labelledby="learner_response_{{ student_id }}">
+            <div class="wrapper--content">
+                {% trans "This learner has not submitted a response to this question." %}
+            </div>
+        </div>
+    </div>
+
+    {% if not workflow_cancellation %}
+        {% if not are_grades_frozen %}
+            <div class="staff-info__staff-override ui-staff__content__section wrapper--ui--collapse ui-slidable__container is--initially--collapsed ">
+                <div class="ui-slidable__control">
+                    <button class="ui-staff ui-slidable" aria-controls="grade_override_content_{{ student_id }}" aria-expanded="false" id="grade_override_{{ student_id }}">
+                        <h2 class="staff-info__title ui-staff__subtitle">
+                            <span class="icon fa fa-caret-right" aria-hidden="true"></span>
+                            <span>{% trans "Submit Assessment Grade Override" %}</span>
+                        </h2>
+                    </button>
+                </div>
+                <div class="staff-info__staff-override__content ui-slidable__content" role="group" id="grade_override_content_{{ student_id }}" aria-labelledby="grade_override_{{ student_id }}">
+                    <div class="wrapper--input">
+                        {% include "openassessmentblock/staff_area/oa_staff_override_assessment.html" %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
+
+    </div>
+</div>

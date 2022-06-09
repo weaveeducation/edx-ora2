@@ -67,6 +67,7 @@ export class EditPeerAssessmentView {
       this.scheduleElement,
       '#peer_assessment_due_date',
       '#peer_assessment_due_time',
+      true
     ).install();
   }
 

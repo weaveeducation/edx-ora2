@@ -10,9 +10,9 @@
             >
                 <span class="step__counter"></span>
                 <span class="wrapper--copy">
-                    <span class="step__label">{% trans "Staff Grade" %} </span>
+                    <span class="step__label">{% trans "Staff Grade" %} {% if scorer_name %}(Graded by: {{ scorer_name }}){% endif %}</span>
                 </span>
-            </button>            
+            </button>
         </h4>
         <span class="step__status">
           <span id="oa_step_status" class="step__status__value">

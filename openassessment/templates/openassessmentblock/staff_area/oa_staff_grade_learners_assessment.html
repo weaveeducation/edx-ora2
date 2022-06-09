@@ -9,6 +9,8 @@
       data-team-usernames="{{ team_usernames|default:"" }}"
     >
         <div class="wrapper--staff-assessment">
+            {% if rubric_count == 0 %}
+            {% else %}
             <div>
                 {% if teams_enabled %}
                   <p>{% trans "Give this team a grade using the problem's rubric." %}</p>
@@ -16,6 +18,7 @@
                   <p>{% trans "Give this learner a grade using the problem's rubric." %}</p>
                 {% endif %}
             </div>
+            {% endif %}
 
             <div>
                 <article class="staff-assessment">
@@ -44,10 +47,14 @@
 
                         {% trans "Associated Files" as translated_header %}
                         {% include "openassessmentblock/oa_uploaded_file.html" with file_upload_type=file_upload_type file_urls=staff_file_urls header=translated_header class_prefix="staff-assessment" show_warning="true" including_template="staff_grade_learners_assessment" xblock_id=xblock_id %}
+                        {% include "openassessmentblock/oa_turnitin_files.html" with turnitin_enabled=turnitin_enabled turnitin_data=turnitin_data display_header=True %}
                     </div>
 
                     <form class="staff-assessment__assessment" method="post">
+                        {% if rubric_count == 0 %}
+                        {% else %}
                         {% include "openassessmentblock/oa_rubric.html" with rubric_type="staff-full-grade" %}
+                        {% endif %}
                     </form>
                 </article>
             </div>
@@ -61,13 +68,21 @@
                 <ul class="list list--actions">
                     <li class="list--actions__item submit_assessment--action">
                         <button type="submit" class="action action--submit" disabled>
+                            {% if rubric_count == 0 %}
+                            {% trans "Submit" %}
+                            {% else %}
                             {% trans "Submit assessment" %}
+                            {% endif %}
                         </button>
                     </li>
 
                     <li class="list--actions__item submit_assessment--action">
                         <button type="submit" class="action action--submit continue_grading--action" disabled>
+                            {% if rubric_count == 0 %}
+                            {% trans "Submit and continue" %}
+                            {% else %}
                             {% trans "Submit assessment and continue grading" %}
+                            {% endif %}
                         </button>
                     </li>
                 </ul>

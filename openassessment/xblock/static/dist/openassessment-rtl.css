@@ -1503,6 +1503,7 @@ hr.divider,
 }
 .step--response .step__rubric .question__answers .wrapper--metadata, .step--student-training .student-training__assessment .question__answers .wrapper--metadata, .openassessment .step--self-assessment .self-assessment__assessment .question__answers .wrapper--metadata, .openassessment .step--peer-assessment .peer-assessment__assessment .question__answers .wrapper--metadata, .openassessment .staff-assessment__assessment .question__answers .wrapper--metadata {
   display: block;
+  padding: 20px;
 }
 @media screen and (min-width: 760px) and (max-width: 924px) {
   .step--response .step__rubric .question__answers .wrapper--metadata, .step--student-training .student-training__assessment .question__answers .wrapper--metadata, .openassessment .step--self-assessment .self-assessment__assessment .question__answers .wrapper--metadata, .openassessment .step--peer-assessment .peer-assessment__assessment .question__answers .wrapper--metadata, .openassessment .staff-assessment__assessment .question__answers .wrapper--metadata {
@@ -3108,6 +3109,23 @@ hr.divider,
 .wrapper--openassessment .wrapper--staff-area .wrapper--ui-staff .ui-staff_close_button:hover {
   color: white;
 }
+.wrapper--openassessment .wrapper--staff-area .wrapper--ui-staff .ui-list_learners_close_button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  float: right;
+  background-color: #2c2f36;
+  font-size: 12px;
+  -webkit-appearance: none;
+  background-image: none;
+  text-shadow: none;
+  box-shadow: none;
+  border: none;
+  border-image: none;
+}
+.wrapper--openassessment .wrapper--staff-area .wrapper--ui-staff .ui-list_learners_close_button:hover {
+  color: white;
+}
 
 .staff-info__student .label {
   color: white;
@@ -3900,6 +3918,10 @@ hr.divider,
 }
 #openassessment-editor #oa_rubric_editor_wrapper .openassessment_criterion .openassessment_criterion_basic_editor .comp-setting-entry .wrapper-comp-settings label input {
   font-size: 11px;
+  float: left;
+  width: 70%;
+}
+#openassessment-editor #oa_rubric_editor_wrapper .openassessment_criterion .openassessment_criterion_basic_editor .comp-setting-entry .wrapper-comp-settings label select {
   float: left;
   width: 70%;
 }

@@ -54,6 +54,9 @@ export class ResponseView {
       this.isRendering = false;
       this.fileCountBeforeUpload = 0;
       this.dateFactory = new DateTimeFactory(this.element);
+      this.isAdditionalRubric = 0;
+      this.submissionUuid = '';
+      this.sourceBlockUniqueId = '';
     }
 
     /**
@@ -81,6 +84,7 @@ export class ResponseView {
             view.announceStatus = false;
             view.dateFactory.apply();
             view.checkSubmissionAbility();
+            view.additionalRubricInit();
           });
         },
       ).fail(() => {
@@ -111,6 +115,11 @@ export class ResponseView {
       }
       // Install a click handler for collapse/expand
       this.baseView.setUpCollapseExpand(sel);
+
+      const turnitinBlock = $('.step--turnitin', this.element);
+      if (turnitinBlock.length > 0) {
+        this.baseView.setUpCollapseExpand(turnitinBlock);
+      }
 
       // Install change handler for editor (to enable submission button)
       this.savedResponse = this.response();
@@ -170,6 +179,47 @@ export class ResponseView {
         },
       );
       this.confirmationDialog = new ConfirmationAlert(sel.find('.step--response__dialog-confirm'));
+    }
+
+    additionalRubricInit() {
+      const view = this;
+      const titleBlock = $('.openassessment__title', this.element);
+      const ignore = titleBlock.data('ignore');
+      this.isAdditionalRubric = parseInt(titleBlock.data('is-additional-rubric'));
+      this.sourceBlockUniqueId = titleBlock.data('source-block-unique-id');
+      this.submissionUuid = titleBlock.data('submission-uuid');
+
+      if ((this.isAdditionalRubric !== 1) || (this.sourceBlockUniqueId === '') || (ignore === 'y')) {
+        return;
+      }
+
+      if (this.submissionUuid !== '') {
+        return;
+      }
+
+      let timerId = setInterval(function() {
+        var sourceBlock = $('.' + view.sourceBlockUniqueId);
+        if (sourceBlock) {
+          var stepResponse = $('.step--response', sourceBlock);
+          if ((stepResponse.length > 0) && $(stepResponse).hasClass('is--complete')) {
+            clearInterval(timerId);
+            view.additionalRubricCheckSubmission();
+          }
+        }
+      }, 1000);
+    }
+
+    additionalRubricCheckSubmission() {
+      const view = this;
+      this.server.checkSubmissionUuid(function() {
+        const titleBlock = $('.openassessment__title', view.element);
+        titleBlock.attr('data-ignore', 'y');
+        view.moveToNextStep();
+      }, function() {
+        setTimeout(function() {
+          view.additionalRubricCheckSubmission();
+        }, 5000);
+      });
     }
 
     /**
@@ -826,7 +876,13 @@ export class ResponseView {
    saveFilesDescriptions() {
      const view = this;
      const sel = $('.step--response', this.element);
+     const fileNames = [];
      const fileMetaData = [];
+
+     for (let j = 0; j < this.files.length; j++) {
+       fileNames.push(this.files[j].name);
+     }
+
      for (let i = 0; i < this.filesDescriptions.length; i++) {
        this.fileNames.push(this.files[i].name);
        const entry = {
@@ -836,7 +892,7 @@ export class ResponseView {
        };
        fileMetaData.push(entry);
      }
-     return this.server.saveFilesDescriptions(fileMetaData).done(
+     return this.server.saveFilesDescriptions(fileMetaData, fileNames).done(
        () => {
          view.removeFilesDescriptions();
        },
@@ -891,8 +947,8 @@ export class ResponseView {
      // URL. This request requires appropriate CORS configuration for AJAX
      // PUT requests on the server.
      return view.server.getUploadUrl(filetype, filename, filenum).done(
-       (url) => {
-         view.fileUploader.upload(url, file)
+       (url, contentType) => {
+         view.fileUploader.upload(url, file, contentType)
            .done(() => {
              view.fileUrl(filenum);
              view.baseView.toggleActionError('upload', null);
