@@ -842,7 +842,9 @@ class OpenAssessmentBlock(MessageMixin,
             bool
         """
         if hasattr(self, 'xmodule_runtime'):
-            return getattr(self.xmodule_runtime, 'user_is_staff', False)  # pylint: disable=no-member
+            user_service = self.xmodule_runtime.service(self, 'user')
+            user_is_staff = user_service.get_current_user().opt_attrs.get('edx-platform.user_is_staff')
+            return user_is_staff
         return False
 
     @property
@@ -880,7 +882,9 @@ class OpenAssessmentBlock(MessageMixin,
             bool
         """
         if hasattr(self, 'xmodule_runtime'):
-            return self.xmodule_runtime.get_real_user is not None  # pylint: disable=no-member
+            user_service = self.xmodule_runtime.service(self, 'user')
+            if user_service and user_service.get_user_by_anonymous_id is not None:
+                return True
         return False
 
     def _create_ui_models(self):
@@ -1462,11 +1466,11 @@ class OpenAssessmentBlock(MessageMixin,
 
         """
         if hasattr(self, "xmodule_runtime"):
-            if self.xmodule_runtime.get_real_user is None:  # pylint: disable=no-member
-                return None
-            user = self.xmodule_runtime.get_real_user(anonymous_user_id)  # pylint: disable=no-member
-            if user:
-                return user
+            user_service = self.xmodule_runtime.service(self, 'user')
+            if user_service and user_service.get_user_by_anonymous_id is not None:
+                user = user_service.get_user_by_anonymous_id(anonymous_user_id)
+                if user:
+                    return user
             logger.exception(
                 "XBlock service could not find user for anonymous_user_id '%s'", anonymous_user_id
             )
