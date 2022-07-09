@@ -829,7 +829,7 @@ class OpenAssessmentBlock(MessageMixin,
         Returns:
             bool
         """
-        if hasattr(self, 'xmodule_runtime'):
+        if hasattr(self, 'xmodule_runtime') and self.xmodule_runtime:
             return getattr(self.xmodule_runtime, 'user_is_admin', False)  # pylint: disable=no-member
         return False
 
@@ -841,7 +841,7 @@ class OpenAssessmentBlock(MessageMixin,
         Returns:
             bool
         """
-        if hasattr(self, 'xmodule_runtime'):
+        if hasattr(self, 'xmodule_runtime') and self.xmodule_runtime:
             user_service = self.xmodule_runtime.service(self, 'user')
             user_is_staff = user_service.get_current_user().opt_attrs.get('edx-platform.user_is_staff')
             return user_is_staff
@@ -855,7 +855,7 @@ class OpenAssessmentBlock(MessageMixin,
         Returns:
             bool
         """
-        if hasattr(self, 'xmodule_runtime'):
+        if hasattr(self, 'xmodule_runtime') and self.xmodule_runtime:
             return getattr(self.xmodule_runtime, 'user_is_beta_tester', False)  # pylint: disable=no-member
         return False
 
@@ -881,7 +881,7 @@ class OpenAssessmentBlock(MessageMixin,
         Returns:
             bool
         """
-        if hasattr(self, 'xmodule_runtime'):
+        if hasattr(self, 'xmodule_runtime') and self.xmodule_runtime:
             user_service = self.xmodule_runtime.service(self, 'user')
             if user_service and user_service.get_user_by_anonymous_id is not None:
                 return True
