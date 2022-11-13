@@ -21,7 +21,8 @@ from ..data import OraSubmissionAnswerFactory
 from .data_conversion import (
     create_submission_dict,
     list_to_conversational_format,
-    prepare_submission_for_serialization
+    prepare_submission_for_serialization,
+    remove_emojis,
 )
 from .resolve_dates import DISTANT_FUTURE
 from .user_data import get_user_preferences
@@ -141,7 +142,7 @@ class SubmissionMixin:
             )
 
         status = False
-        student_sub_data = data['submission']
+        student_sub_data = [remove_emojis(sbm) for sbm in data['submission']]
         success, msg = validate_submission(student_sub_data, self.prompts, self._, self.text_response)
         if not success:
             return (
@@ -325,7 +326,7 @@ class SubmissionMixin:
         failure_response = {'success': False, 'msg': self._("Files descriptions were not submitted.")}
 
         if 'file_names' in data:
-            self.saved_file_names = json.dumps(data['file_names'])
+            self.saved_file_names = json.dumps([remove_emojis(f) for f in data['file_names']])
 
         if 'fileMetadata' not in data:
             return failure_response
@@ -335,8 +336,8 @@ class SubmissionMixin:
 
         file_data = [
             {
-                'description': item['description'],
-                'name': item['fileName'],
+                'description': remove_emojis(item['description']),
+                'name': remove_emojis(item['fileName']),
                 'size': item['fileSize'],
             } for item in data['fileMetadata']
         ]
