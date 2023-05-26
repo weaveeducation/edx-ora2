@@ -6,6 +6,8 @@ import os
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.functional import cached_property
+from django.urls import reverse
+from django.db import transaction
 from xblock.core import XBlock
 from xblock.exceptions import NoSuchServiceError
 
@@ -19,11 +21,14 @@ from ..data import OraSubmissionAnswerFactory
 from .data_conversion import (
     create_submission_dict,
     list_to_conversational_format,
-    prepare_submission_for_serialization
+    prepare_submission_for_serialization,
+    remove_emojis,
 )
 from .resolve_dates import DISTANT_FUTURE
 from .user_data import get_user_preferences
 from .validation import validate_submission
+from common.djangoapps.turnitin_integration.service import get_submissions_status as get_turnitin_submissions_status,\
+    create_submissions as turnitin_create_submissions, get_turnitin_key
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -33,6 +38,10 @@ class NoTeamToCreateSubmissionForError(Exception):
 
 
 class EmptySubmissionError(Exception):
+    pass
+
+
+class RequiredFilesAbsent(Exception):
     pass
 
 
@@ -70,6 +79,20 @@ class SubmissionMixin:
         'rgs', 'run', 'sct', 'shb', 'shs', 'u3p', 'vbscript', 'vbe', 'workflow',
         'htm', 'html',
     ]
+
+    FILE_EXT_TO_CONTENT_TYPE = {
+        'doc': 'application/msword',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls': 'application/vnd.ms-excel',
+        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'ppt': 'application/vnd.ms-powerpoint',
+        'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'pdf': 'application/pdf',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'gif': 'image/gif',
+        'png': 'image/png',
+    }
 
     FILE_UPLOAD_PRESETS = {
         'image': {
@@ -119,7 +142,7 @@ class SubmissionMixin:
             )
 
         status = False
-        student_sub_data = data['submission']
+        student_sub_data = [remove_emojis(sbm) for sbm in data['submission']]
         success, msg = validate_submission(student_sub_data, self.prompts, self._, self.text_response)
         if not success:
             return (
@@ -148,11 +171,33 @@ class SubmissionMixin:
             try:
 
                 # a submission for a team generates matching submissions for all members
-                if self.is_team_assignment():
-                    submission = self.create_team_submission(student_sub_data)
-                else:
-                    submission = self.create_submission(student_item_dict, student_sub_data)
-                return self._create_submission_response(submission)
+                try:
+                    if self.is_team_assignment():
+                        submission = self.create_team_submission(student_sub_data)
+                    else:
+                        submission = self.create_submission(student_item_dict, student_sub_data)
+                    resp = self._create_submission_response(submission)
+                except RequiredFilesAbsent:
+                    return (
+                        False,
+                        'EBADARGS',
+                        "Required files are absent"
+                    )
+                if len(self.rubric_criteria) == 0 and not self.in_studio_preview:
+                    api.set_score(submission["uuid"], self.max_score(), self.max_score())
+
+                    try:
+                        from completion.models import BlockCompletion
+                        user_service = self.runtime.service(self, 'user')
+                        if user_service and hasattr(user_service, '_django_user'):
+                            BlockCompletion.objects.submit_completion(
+                                user=user_service._django_user,
+                                block_key=self.location,
+                                completion=1.0,
+                            )
+                    except ImportError:
+                        pass
+                return resp
 
             except api.SubmissionRequestError as err:
 
@@ -280,6 +325,9 @@ class SubmissionMixin:
         """
         failure_response = {'success': False, 'msg': self._("Files descriptions were not submitted.")}
 
+        if 'file_names' in data:
+            self.saved_file_names = json.dumps([remove_emojis(f) for f in data['file_names']])
+
         if 'fileMetadata' not in data:
             return failure_response
 
@@ -288,8 +336,8 @@ class SubmissionMixin:
 
         file_data = [
             {
-                'description': item['description'],
-                'name': item['fileName'],
+                'description': remove_emojis(item['description']),
+                'name': remove_emojis(item['fileName']),
                 'size': item['fileSize'],
             } for item in data['fileMetadata']
         ]
@@ -378,23 +426,54 @@ class SubmissionMixin:
         )
         return submission
 
-    def create_submission(self, student_item_dict, student_sub_data):
+    def create_submission(self, student_item_dict, student_sub_data, ignore_files_check=False):
         """ Creates submission for the submitted assessment response or a list for a team assessment. """
         # Import is placed here to avoid model import at project startup.
         from submissions import api
+        from lms.djangoapps.courseware.tasks import ora_multiple_rubrics_propagate_answer
 
         # Store the student's response text in a JSON-encodable dict
         # so that later we can add additional response fields.
         student_sub_dict = prepare_submission_for_serialization(student_sub_data)
 
-        self._collect_files_for_submission(student_sub_dict)
+        if not ignore_files_check:
+            self._collect_files_for_submission(student_sub_dict)
 
-        self.check_for_empty_submission_and_raise_error(student_sub_dict)
+        if not self.is_additional_rubric:
+            self.check_for_empty_submission_and_raise_error(student_sub_dict, ignore_files_check)
 
         submission = api.create_submission(student_item_dict, student_sub_dict)
         self.create_workflow(submission["uuid"])
         self.submission_uuid = submission["uuid"]
 
+        if self.check_turnitin_enabled_in_org() and self.turnitin_enabled:
+            turnitin_create_submissions(submission["uuid"], self.get_student_item_dict(), submission["answer"])
+
+        submitter_anonymous_user_id = self.xmodule_runtime.anonymous_student_id
+        user = self.get_real_user(submitter_anonymous_user_id)
+
+        if self.support_multiple_rubrics and self.block_unique_id:
+            student_files_info = {}
+            if self.saved_files_descriptions:
+                student_files_info['saved_files_descriptions'] = self.saved_files_descriptions
+            if self.saved_file_names:
+                student_files_info['saved_file_names'] = self.saved_file_names
+            if self.saved_files_names:
+                student_files_info['saved_files_names'] = self.saved_files_names
+            if self.saved_files_sizes:
+                student_files_info['saved_files_sizes'] = self.saved_files_sizes
+
+            transaction.on_commit(lambda: ora_multiple_rubrics_propagate_answer.delay(
+                str(self.location.course_key), str(self.location),
+                user.id, student_item_dict, student_sub_dict, student_files_info
+            ))
+
+        # Emit analytics event...
+        self.generate_create_submission_event(submission)
+
+        return submission
+
+    def generate_create_submission_event(self, submission):
         # Emit analytics event...
         self.runtime.publish(
             self,
@@ -405,12 +484,16 @@ class SubmissionMixin:
                 "created_at": submission["created_at"],
                 "submitted_at": submission["submitted_at"],
                 "answer": submission["answer"],
+                "rubric_count": len(self.rubric_criteria),
+                "rubrics": self.rubric_criteria,
+                "prompts": self.get_event_prompts(),
+                "support_multiple_rubrics": self.support_multiple_rubrics,
+                "is_additional_rubric": self.is_additional_rubric,
+                "ungraded": self.ungraded
             }
         )
 
-        return submission
-
-    def check_for_empty_submission_and_raise_error(self, student_sub_dict):
+    def check_for_empty_submission_and_raise_error(self, student_sub_dict, ignore_files_check=False):
         """
         Check if student_sub_dict has any submission content so that we don't
         create empty submissions.
@@ -422,8 +505,9 @@ class SubmissionMixin:
         # Does the student_sub_dict have any non-zero-length strings in 'parts'?
         has_content |= any(part.get('text', '') for part in student_sub_dict.get('parts', []))
 
-        # Are there any file_keys in student_sub_dict?
-        has_content |= len(student_sub_dict.get('file_keys', [])) > 0
+        if not ignore_files_check:
+            # Are there any file_keys in student_sub_dict?
+            has_content |= len(student_sub_dict.get('file_keys', [])) > 0
 
         if not has_content:
             raise EmptySubmissionError
@@ -448,6 +532,9 @@ class SubmissionMixin:
             student_sub_dict['files_names'].append(upload.name)
             student_sub_dict['files_sizes'].append(upload.size)
 
+        if self.file_upload_response == 'required' and not student_sub_dict['file_keys']:
+            raise RequiredFilesAbsent("Required files absent")
+
         return student_sub_dict
 
     @XBlock.json_handler
@@ -457,6 +544,10 @@ class SubmissionMixin:
         """
         anonymous_id = self.xmodule_runtime.anonymous_student_id
         return {'username': self.get_username(anonymous_id)}
+
+    @XBlock.json_handler
+    def get_student_submission_uuid(self, data, suffix):
+        return {'submission_uuid': self.submission_uuid}
 
     @XBlock.json_handler
     def upload_url(self, data, suffix=''):  # pylint: disable=unused-argument
@@ -497,12 +588,15 @@ class SubmissionMixin:
                 "If you have questions, please reach out to the course team."
             )}
 
+        if self.file_upload_type == 'custom' and not content_type and file_ext.lower() in self.FILE_EXT_TO_CONTENT_TYPE:
+            content_type = self.FILE_EXT_TO_CONTENT_TYPE[file_ext.lower()]
+
         # Attempt to upload
         file_num = int(data.get('filenum', 0))
         try:
             key = self._get_student_item_key(file_num)
             url = file_upload_api.get_upload_url(key, content_type)
-            return {'success': True, 'url': url}
+            return {'success': True, 'url': url, 'content_type': content_type}
         except FileUploadError:
             logger.exception("FileUploadError:Error retrieving upload URL for the data: %s.", data)
             return {'success': False, 'msg': self._("Error retrieving upload URL.")}
@@ -890,7 +984,12 @@ class SubmissionMixin:
             'user_language': user_preferences['user_language'],
             'user_timezone': user_preferences['user_timezone'],
             'xblock_id': self.get_xblock_id(),
-            'base_asset_url': self._get_base_url_path_for_course_assets(course_id)
+            'base_asset_url': self._get_base_url_path_for_course_assets(course_id),
+            "rubric_count": len(self.rubric_criteria),
+            "is_additional_rubric": self.is_additional_rubric,
+            "block_unique_id": self.block_unique_id,
+            "source_block_unique_id": self.source_block_unique_id,
+            "support_multiple_rubrics": self.support_multiple_rubrics,
         }
 
         if self.show_rubric_during_response:
@@ -921,6 +1020,7 @@ class SubmissionMixin:
         context['file_upload_type'] = self.file_upload_type
         context['allow_multiple_files'] = self.allow_multiple_files
         context['allow_latex'] = self.allow_latex
+        context['submission_due_empty'] = self.submission_due_empty
 
         file_urls = None
 
@@ -931,7 +1031,11 @@ class SubmissionMixin:
             context['team_file_urls'] = self.file_manager.team_file_descriptors(
                 team_id=team_id_for_current_submission
             )
-            context['white_listed_file_types'] = ['.' + ext for ext in self.get_allowed_file_types_or_preset()]
+            white_listed_file_types = self.get_allowed_file_types_or_preset()
+            if white_listed_file_types:
+                context['white_listed_file_types'] = ['.' + ext for ext in white_listed_file_types]
+            else:
+                context['white_listed_file_types'] = []
 
         if not workflow and problem_closed:
             if reason == 'due':
@@ -969,6 +1073,12 @@ class SubmissionMixin:
                     and not self.saved_response and not file_urls:
                 submit_enabled = False
             context['submit_enabled'] = submit_enabled
+            context['turnitin_eula'] = None
+
+            if self.check_turnitin_enabled_in_org() and self.turnitin_enabled:
+                turnitin_key = get_turnitin_key(self.location.course_key.org)
+                context['turnitin_eula'] = reverse('turnitin_eula',
+                                                   kwargs={'api_key_id': turnitin_key.id}) if turnitin_key else None
 
             if self.teams_enabled:
                 self.get_team_submission_context(context)
@@ -1002,6 +1112,18 @@ class SubmissionMixin:
             context["peer_incomplete"] = peer_in_workflow and not workflow["status_details"]["peer"]["complete"]
             context["self_incomplete"] = self_in_workflow and not workflow["status_details"]["self"]["complete"]
             context["student_submission"] = create_submission_dict(student_submission, self.prompts)
+
+            turnitin_enabled = self.check_turnitin_enabled_in_org() and self.turnitin_enabled
+            context["turnitin_enabled"] = turnitin_enabled
+
+            if turnitin_enabled:
+                context["turnitin_data"] = get_turnitin_submissions_status(
+                    workflow["submission_uuid"], self.turnitin_config.get('display_score', True))
+                context['turnitin_display_link'] = self.turnitin_config.get('display_link', True)
+            else:
+                context["turnitin_data"] = None
+                context['turnitin_display_link'] = None
+
             path = 'openassessmentblock/response/oa_response_submitted.html'
 
         return path, context

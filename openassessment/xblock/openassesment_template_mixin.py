@@ -41,6 +41,14 @@ class OpenAssessmentTemplatesMixin:
             template_id = assesment_type
             template = cls._create_template_dict(template_id, display_name)
             templates.append(template)
+        templates.append({
+            'template_id': 'ora-without-criterions',
+            'metadata': {'display_name': 'Open Response Assessment without Criterions'}
+        })
+        templates.append({
+            'template_id': 'ora-additional-rubric',
+            'metadata': {'display_name': 'Open Response Assessment: Additional Rubric'}
+        })
         return templates
 
     @classmethod
@@ -82,6 +90,54 @@ class OpenAssessmentTemplatesMixin:
         Returns:
             A dictionary of payload to be consumed by Studio.
         """
+        if template_id == 'ora-additional-rubric':
+            return {
+                'metadata': {
+                    'display_name': 'Additional Rubric',
+                    'title': 'Additional Rubric',
+                    'is_additional_rubric': True,
+                    'prompt': '',
+                    'prompts_type': 'html',
+                    'rubric_assessments': [
+                        {
+                            'must_grade': 5,
+                            'name': 'peer-assessment',
+                            'must_be_graded_by': 3,
+                            'start': '2001-01-01T00:00:00+00:00',
+                            'due': '2029-01-01T00:00:00+00:00'
+                        }, {
+                            'name': 'self-assessment',
+                            'start': '2001-01-01T00:00:00+00:00',
+                            'due': '2029-01-01T00:00:00+00:00'
+                        }, {
+                            'name': 'staff-assessment',
+                            'start': None,
+                            'due': None,
+                            'required': True
+                        }]
+                },
+                'data': {
+
+                }
+            }
+        elif template_id == 'ora-without-criterions':
+            return {
+                'metadata': {
+                    'display_name': 'Open Response Assessment',
+                    'title': 'Open Response Assessment',
+                    'rubric_criteria': [],
+                    'rubric_assessments': [{
+                        'name': 'staff-assessment',
+                        'start': None,
+                        'due': None,
+                        'required': True
+                    }]
+                },
+                'data': {
+
+                }
+            }
+
         rubric_assessments = cls._create_rubric_assessment_dict(template_id)
         return {
             "data": rubric_assessments

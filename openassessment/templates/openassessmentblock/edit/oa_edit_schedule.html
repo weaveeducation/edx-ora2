@@ -1,7 +1,7 @@
 {% load i18n %}
 {% load tz %}
 {% spaceless %}
-<div id="oa_schedule_editor_wrapper" class="oa_editor_content_wrapper wrapper-comp-settings">
+<div id="oa_schedule_editor_wrapper" class="oa_editor_content_wrapper wrapper-comp-settings" data-is-additional-rubric="{{ is_additional_rubric }}">
     <p class="openassessment_schedule_setting_header">{% trans "Course Deadlines" %}</p>
 
     <ul class="list-input settings-list">
@@ -46,7 +46,7 @@
                     type="text"
                     class="input setting-input"
                     id="openassessment_submission_due_date"
-                    value="{{ submission_due|utc|date:"Y-m-d" }}"
+                    value="{% if not submission_due_empty %}{{ submission_due|utc|date:"Y-m-d" }}{% endif %}"
                 >
             </div>
             <div class="wrapper-comp-setting">
@@ -59,7 +59,7 @@
                     type="text"
                     class="input setting-input"
                     id="openassessment_submission_due_time"
-                    value="{{ submission_due|utc|date:"H:i" }}"
+                    value="{% if not submission_due_empty %}{{ submission_due|utc|date:"H:i" }}{% endif %}"
                 >
             </div>
             <p class="setting-help">{% trans "The date and time when learners can no longer submit responses." %}</p>

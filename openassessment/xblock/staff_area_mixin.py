@@ -4,6 +4,7 @@ determine the flow of the problem.
 """
 import copy
 import logging
+import json
 from functools import wraps
 from webob import Response
 
@@ -14,8 +15,14 @@ from submissions.errors import SubmissionNotFoundError
 from openassessment.assessment.errors import PeerAssessmentInternalError
 from openassessment.fileupload.api import delete_shared_files_for_team, remove_file
 from openassessment.workflow.errors import AssessmentWorkflowError, AssessmentWorkflowInternalError
+from openassessment.workflow.models import AssessmentWorkflow
 from openassessment.xblock.data_conversion import create_submission_dict
 from openassessment.xblock.resolve_dates import DISTANT_FUTURE, DISTANT_PAST
+from common.djangoapps.turnitin_integration.service import get_submissions_status as get_turnitin_submissions_status
+from common.djangoapps.credo_modules.models import get_sequential_parent_block
+from common.djangoapps.student.models import anonymous_id_for_user
+from common.djangoapps.credo_modules.models import CourseStaffExtended
+from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 
 from .user_data import get_user_preferences
 
@@ -95,10 +102,10 @@ class StaffAreaMixin:
             dict: The template context specific to the course staff debug panel.
 
         """
-        path, context = self.get_staff_path_and_context()
+        path, context = self.get_staff_path_and_context(extra_context=data.GET)
         return self.render_assessment(path, context)
 
-    def get_staff_path_and_context(self):
+    def get_staff_path_and_context(self, extra_context=None):
         """
         Gets the path and context for the staff section of the ORA XBlock.
         """
@@ -151,7 +158,8 @@ class StaffAreaMixin:
             )
 
             context.update(
-                self.get_staff_assessment_statistics_context(student_item["course_id"], student_item["item_id"])
+                self.get_staff_assessment_statistics_context(student_item["course_id"], student_item["item_id"],
+                                                             extra_context=extra_context)
             )
 
         # Include whether or not this is a team assignment
@@ -159,25 +167,92 @@ class StaffAreaMixin:
 
         context['xblock_id'] = self.get_xblock_id()
 
+        studio_url = configuration_helpers.get_value('CMS_BASE', settings.CMS_BASE)
+
         # Add studio URL to link to edit view. We actually want to direct to the vertical instead of the ORA like below:
         # http://<studio-url>/container/block-v1:<course-id>+type@vertical+block@<block-id>
         url = '{protocol}://{studio_url}/container/{vertical_location}'.format(
             protocol='http' if getattr(settings, 'HTTPS', 'on') == 'off' else 'https',
-            studio_url=getattr(settings, 'CMS_BASE', ''),
+            studio_url=studio_url,
             vertical_location=str(self.parent)
         )
-        context['studio_edit_url'] = url
+
+        if not self.scope_ids.user_id or not CourseStaffExtended.objects.filter(
+                role__course_studio_access=False,
+                user_id=self.scope_ids.user_id,
+                course_id=self.location.course_key).exists():
+            context['studio_edit_url'] = url
+        else:
+            context['studio_edit_url'] = None
 
         return path, context
 
-    @staticmethod
-    def get_staff_assessment_statistics_context(course_id, item_id):
+    def get_lti_users(self, extra_context=None):
+        if not extra_context:
+            extra_context = {}
+        is_studio = getattr(self.runtime, "is_author_mode", False)
+        if not is_studio:
+            try:
+                from lms.djangoapps.lti_provider.models import LtiContextId
+            except ImportError:
+                LtiContextId = None
+        else:
+            LtiContextId = None
+
+        lti_context_id = extra_context.get('lti_context_id')
+
+        if lti_context_id and LtiContextId is not None:
+            sequential_block_id = get_sequential_parent_block(self.location.course_key, self)
+            contexts = LtiContextId.objects.filter(
+                course_key=self.location.course_key,
+                usage_key=sequential_block_id,
+                value=lti_context_id
+            )
+            return [context.user_id for context in contexts]
+        return None
+
+    def get_lti_submissions(self, extra_context):
+        # Import is placed here to avoid model import at project startup.
+        from common.djangoapps.student.models import AnonymousUserId
+        from submissions import api as submission_api
+
+        submission_uuids = None
+        lti_context_id = None
+        if extra_context:
+            lti_context_id = extra_context.get('lti_context_id')
+
+        if lti_context_id:
+            allowed_lti_user_ids = self.get_lti_users(extra_context)
+            if allowed_lti_user_ids:
+                anon_students = AnonymousUserId.objects.filter(
+                    course_id=self.location.course_key, user_id__in=allowed_lti_user_ids)
+                anon_student_ids = [a.anonymous_user_id for a in anon_students]
+
+                submissions = submission_api.get_all_submissions(
+                    self.location.course_key, self.location, 'openassessment')
+                submission_uuids = [s['uuid'] for s in submissions if s['student_id'] in anon_student_ids]
+        return submission_uuids
+
+    def get_staff_assessment_statistics_context(self, course_id, item_id, extra_context=None):
         """
         Returns a context with staff assessment "ungraded" and "in-progress" counts.
         """
         # Import is placed here to avoid model import at project startup.
         from openassessment.assessment.api import staff as staff_api
-        grading_stats = staff_api.get_staff_grading_statistics(course_id, item_id)
+
+        kwargs = {}
+
+        if extra_context and extra_context.get('lti_context_id'):
+            lti_submissions = self.get_lti_submissions(extra_context)
+            if lti_submissions:
+                kwargs['submission_uuid__in'] = lti_submissions
+            else:
+                return {
+                    'staff_assessment_ungraded': 0,
+                    'staff_assessment_in_progress': 0
+                }
+
+        grading_stats = staff_api.get_staff_grading_statistics(course_id, item_id, **kwargs)
 
         return {
             'staff_assessment_ungraded': grading_stats['ungraded'],
@@ -331,9 +406,19 @@ class StaffAreaMixin:
             item_id = student_item_dict.get('item_id')
             staff_id = student_item_dict['student_id']
 
+            kwargs = {}
+
+            if data.GET.get('lti_context_id'):
+                lti_submissions = self.get_lti_submissions(data.GET)
+                if lti_submissions:
+                    kwargs['submission_uuid__in'] = lti_submissions
+                else:
+                    return self.render_error(
+                        self._(u"No other learner responses are available for grading at this time."))
+
             # Note that this will check out a submission for grading by the specified staff member.
             # If no submissions are available for grading, will return None.
-            submission_to_assess = staff_api.get_submission_to_assess(course_id, item_id, staff_id)
+            submission_to_assess = staff_api.get_submission_to_assess(course_id, item_id, staff_id, **kwargs)
 
             if submission_to_assess is not None:
                 # This is posting a tracking event to the runtime.
@@ -372,7 +457,8 @@ class StaffAreaMixin:
             student_item_dict = self.get_student_item_dict()
 
             context = self.get_staff_assessment_statistics_context(
-                student_item_dict.get('course_id'), student_item_dict.get('item_id')
+                student_item_dict.get('course_id'), student_item_dict.get('item_id'),
+                extra_context=data.GET
             )
 
             path = 'openassessmentblock/staff_area/oa_staff_grade_learners_count.html'
@@ -380,6 +466,55 @@ class StaffAreaMixin:
 
         except PeerAssessmentInternalError:
             return self.render_error(self._("Error getting staff grade ungraded and checked out counts."))
+
+    @XBlock.json_handler
+    @require_course_staff("STUDENT_GRADE")
+    def get_student_statuses(self, data, suffix=''):
+        from submissions import api as submission_api
+        from common.djangoapps.student.models import AnonymousUserId, CourseEnrollment
+
+        allowed_lti_user_ids = self.get_lti_users(data)
+        submissions = submission_api.get_all_submissions(self.location.course_key, self.location, 'openassessment')
+
+        student_uuid_map = {}
+        uuid_status_map = {}
+        student_ids = []
+
+        for submission in submissions:
+            student_id = submission['student_id']
+            student_uuid_map[student_id] = submission['uuid']
+            student_ids.append(student_id)
+
+        if self.check_include_all_learners():
+            enrolls = CourseEnrollment.objects.filter(course_id=self.location.course_key)
+            for enroll in enrolls:
+                student_id = anonymous_id_for_user(enroll.user, self.location.course_key)
+                if student_id not in student_ids:
+                    student_ids.append(student_id)
+
+        workflows = AssessmentWorkflow.objects.filter(submission_uuid__in=student_uuid_map.values())
+        for workflow in workflows:
+            uuid_status_map[workflow.submission_uuid] = workflow.status
+
+        students_data = []
+        students = AnonymousUserId.objects.select_related('user').filter(
+            course_id=self.location.course_key, anonymous_user_id__in=student_ids)
+        for student in students:
+            if allowed_lti_user_ids and student.user_id not in allowed_lti_user_ids:
+                continue
+
+            students_data.append({
+                'name': student.user.first_name + ' ' + student.user.last_name,
+                'username': student.user.username,
+                'email': student.user.email,
+                'user_id': student.user.id,
+                'student_id': student.anonymous_user_id,
+                'status': uuid_status_map.get(
+                    student_uuid_map.get(student.anonymous_user_id), 'incomplete'
+                )
+            })
+
+        return {'result': sorted(students_data, key=lambda k: k['username'])}
 
     def get_student_submission_context(self, student_username, submission):
         """
@@ -394,11 +529,21 @@ class StaffAreaMixin:
         Returns:
             A context dict for rendering a student submission and associated rubric (for staff grading).
         """
+        from lms.djangoapps.courseware.models import StudentModule
+
         user_preferences = get_user_preferences(self.runtime.service(self, 'user'))  # localize for staff user
+
+        anonymous_user_id = self.get_anonymous_user_id(student_username, self.course_id)
 
         context = {
             'submission': create_submission_dict(submission, self.prompts) if submission else None,
             'rubric_criteria': copy.deepcopy(self.rubric_criteria_with_labels),
+            'rubric_count': len(self.rubric_criteria),
+            'is_additional_rubric': self.is_additional_rubric,
+            'support_multiple_rubrics': self.support_multiple_rubrics,
+            'block_unique_id': self.block_unique_id,
+            'source_block_unique_id': self.source_block_unique_id,
+            'student_id': anonymous_user_id,
             'student_username': student_username,
             'user_timezone': user_preferences['user_timezone'],
             'user_language': user_preferences['user_language'],
@@ -433,6 +578,31 @@ class StaffAreaMixin:
 
         if self.rubric_feedback_default_text is not None:
             context['rubric_feedback_default_text'] = self.rubric_feedback_default_text
+
+        turnitin_enabled = self.check_turnitin_enabled_in_org() and self.turnitin_enabled
+        submission_uuid = submission['uuid'] if submission else None
+
+        if self.is_additional_rubric:
+            parent_block = self.get_parent_block()
+            turnitin_enabled = self.check_turnitin_enabled_in_org() and parent_block['turnitin_enabled']
+            anonymous_user_id = self.get_anonymous_user_id(student_username, self.course_id)
+            user = self.get_real_user(anonymous_user_id)
+            student_module = StudentModule.objects.filter(course_id=self.course_id, student=user,
+                                                          module_state_key=parent_block['usage_id']).first()
+            if student_module:
+                state_data = json.loads(student_module.state)
+                submission_uuid = state_data.get('submission_uuid')
+
+        context["turnitin_enabled"] = turnitin_enabled
+
+        if turnitin_enabled:
+            context["turnitin_data"] = None
+            if submission_uuid:
+                context["turnitin_data"] = get_turnitin_submissions_status(submission_uuid, True)
+            context['turnitin_display_link'] = True
+        else:
+            context["turnitin_data"] = None
+            context['turnitin_display_link'] = None
 
         context['xblock_id'] = self.get_xblock_id()
         return context
@@ -472,6 +642,9 @@ class StaffAreaMixin:
         # Only add the rest of the details to the context if a submission exists.
         if submission_uuid:
             self.add_submission_context(submission_uuid, context)
+            path = 'openassessmentblock/staff_area/oa_student_info.html'
+        else:
+            path = 'openassessmentblock/staff_area/oa_student_info_no_sumbission.html'
 
         # Add team info to context
         context['team_name'] = None
@@ -486,8 +659,8 @@ class StaffAreaMixin:
                 except ObjectDoesNotExist:
                     # A student outside of the course will not exist and is valid
                     pass
+            path = 'openassessmentblock/staff_area/oa_student_info.html'
 
-        path = 'openassessmentblock/staff_area/oa_student_info.html'
         return path, context
 
     def add_submission_context(self, submission_uuid, context):

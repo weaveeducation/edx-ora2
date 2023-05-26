@@ -115,6 +115,14 @@ EDITOR_UPDATE_SCHEMA = Schema({
     'white_listed_file_types': utf8_validator,
     Required('allow_multiple_files'): bool,
     Required('allow_latex'): bool,
+    Required('include_all_learners'): bool,
+    Required('turnitin_enabled'): bool,
+    Required('ungraded'): bool,
+    Required('display_rubric_step_to_students'): bool,
+    Required('display_grader'): bool,
+    Required('support_multiple_rubrics'): bool,
+    Optional('parent_block_id'): utf8_validator,
+    Required('turnitin_config'): dict,
     Required('leaderboard_show'): int,
     Optional('teams_enabled'): bool,
     Optional('selected_teamset_id'): utf8_validator,
@@ -151,6 +159,8 @@ EDITOR_UPDATE_SCHEMA = Schema({
             Required('name'): utf8_validator,
             Required('label'): utf8_validator,
             Required('prompt'): utf8_validator,
+            Required('use_grading_key'): bool,
+            Required('grading_key'): All(int, Range(min=1)),
             Required('feedback'): All(
                 utf8_validator,
                 In([

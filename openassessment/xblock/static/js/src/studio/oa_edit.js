@@ -233,13 +233,13 @@ export class StudioView {
 
     this.server.updateEditorContext({
       prompts: this.promptsView.promptsDefinition(),
-      prompts_type: this.promptsView.promptsType(),
+      prompts_type: this.settingsView.isAdditionalRubric ? 'html' : this.promptsView.promptsType(),
       feedbackPrompt: this.rubricView.feedbackPrompt(),
       feedback_default_text: this.rubricView.feedback_default_text(),
       criteria: this.rubricView.criteriaDefinition(),
       title: this.settingsView.displayName(),
-      submissionStart: this.scheduleView.submissionStart(),
-      submissionDue: this.scheduleView.submissionDue(),
+      submissionStart: !this.settingsView.isAdditionalRubric ? this.scheduleView.submissionStart() : null,
+      submissionDue: !this.settingsView.isAdditionalRubric ? this.scheduleView.submissionDue(): null,
       assessments: this.assessmentsStepsView.assessmentsDescription(),
       textResponse: this.settingsView.textResponseNecessity(),
       textResponseEditor: this.settingsView.textResponseEditor(),
@@ -248,11 +248,19 @@ export class StudioView {
       fileTypeWhiteList: this.settingsView.fileTypeWhiteList(),
       multipleFilesEnabled: teamsEnabled ? true : this.settingsView.multipleFilesEnabled(),
       latexEnabled: this.settingsView.latexEnabled(),
+      includeAllLearners: this.settingsView.includeAllLearners(),
       leaderboardNum: this.settingsView.leaderboardNum(),
+      turnitinEnabled: this.settingsView.turnitinEnabled(),
+      turnitinConfig: this.settingsView.turnitinSettings(),
+      ungraded: this.settingsView.getUngraded(),
+      displayRubricStepToStudents: this.settingsView.displayRubricStepToStudents(),
+      displayGrader: this.settingsView.displayGrader(),
+      supportMultipleRubrics: this.settingsView.supportMultipleRubrics(),
+      parentBlock: this.promptsView.getParentBlock(),
       editorAssessmentsOrder: this.assessmentsStepsView.editorAssessmentsOrder(),
       teamsEnabled,
       selectedTeamsetId: this.settingsView.teamset(),
-      showRubricDuringResponse: this.settingsView.showRubricDuringResponse(),
+      showRubricDuringResponse: this.settingsView.showRubricDuringResponse()
     }).done(
       // Notify the client-side runtime that we finished saving
       // so it can hide the "Saving..." notification.

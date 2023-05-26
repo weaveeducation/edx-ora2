@@ -1,5 +1,5 @@
 {% load i18n %}
-<ul id="oa_basic_settings_editor" class="list-input settings-list">
+<ul id="oa_basic_settings_editor" class="list-input settings-list" data-is-additional-rubric="{{ is_additional_rubric }}">
     <li id="openassessment_title_editor_wrapper" class="field comp-setting-entry">
         <div class="wrapper-comp-setting">
             <label for="openassessment_title_editor" class="setting-label">{% trans "Display Name "%}</label>
@@ -7,6 +7,7 @@
         </div>
         <p class="setting-help">{% trans "The display name for this component." %}</p>
     </li>
+{% if not is_additional_rubric %}
     <li id="openassessment_submission_text_response_wrapper" class="field comp-setting-entry">
         <div class="wrapper-comp-setting">
             <label for="openassessment_submission_text_response" class="setting-label">{% trans "Text Response"%}</label>
@@ -162,4 +163,105 @@
             {% trans "Specify whether learners can see the rubric while they are working on their response." %}
         </p>
     </li>
+
+    <li id="openassessment_support_multiple_rubrics_wrapper" class="field comp-setting-entry">
+        <div class="wrapper-comp-setting">
+            <label for="openassessment_support_multiple_rubrics_editor" class="setting-label">{% trans "Support Multiple Rubrics" %}</label>
+            <select id="openassessment_support_multiple_rubrics_editor" class="input setting-input" name="support_multiple_rubrics">
+                <option value="0">{% trans "False"%}</option>
+                <option value="1" {% if support_multiple_rubrics %} selected="true" {% endif %}>{% trans "True"%}</option>
+            </select>
+        </div>
+    </li>
+    <li id="openassessment_include_all_learners_wrapper" class="field comp-setting-entry">
+        <div class="wrapper-comp-setting">
+            <label for="openassessment_include_all_learners_editor" class="setting-label">{% trans "Include All Enrolled Learners"%}</label>
+            <select id="openassessment_include_all_learners_editor" class="input setting-input" name="include all learners">
+                <option value="0">{% trans "False"%}</option>
+                <option value="1" {% if include_all_learners %} selected="true" {% endif %}>{% trans "True"%}</option>
+            </select>
+        </div>
+        <p class="setting-help">{% trans "Include All Enrolled Learners for Grading"%}</p>
+    </li>
+    {% if turnitin_settings_display %}
+    <li id="openassessment_turnitin_enabled_wrapper" class="field comp-setting-entry">
+        <div class="wrapper-comp-setting">
+            <label for="openassessment_turnitin_enabled_editor" class="setting-label">{% trans "Enable Integration with Turnitin Service" %}</label>
+            <select id="openassessment_turnitin_enabled_editor" class="input setting-input" name="turnitin_enabled">
+                <option value="0">{% trans "False"%}</option>
+                <option value="1" {% if turnitin_enabled %} selected="true" {% endif %}>{% trans "True"%}</option>
+            </select>
+        </div>
+    </li>
+    <li id="openassessment_turnitin_display_score_wrapper" class="field comp-setting-entry turnitin-setting {% if not turnitin_enabled %}is--hidden{% endif %}">
+        <div class="wrapper-comp-setting">
+            <label for="openassessment_turnitin_display_score_editor" class="setting-label">{% trans "Display the Turnitin Score" %}</label>
+            <select id="openassessment_turnitin_display_score_editor" class="input setting-input" name="turnitin_display_score">
+                <option value="0">{% trans "False"%}</option>
+                <option value="1" {% if turnitin_display_score %} selected="true" {% endif %}>{% trans "True"%}</option>
+            </select>
+        </div>
+    </li>
+    <li id="openassessment_turnitin_display_link_wrapper" class="field comp-setting-entry turnitin-setting {% if not turnitin_enabled %}is--hidden{% endif %}">
+        <div class="wrapper-comp-setting">
+            <label for="openassessment_turnitin_display_link_editor" class="setting-label">{% trans "Display the link to the Turnitin report" %}</label>
+            <select id="openassessment_turnitin_display_link_editor" class="input setting-input" name="turnitin_display_link">
+                <option value="0">{% trans "False"%}</option>
+                <option value="1" {% if turnitin_display_link %} selected="true" {% endif %}>{% trans "True"%}</option>
+            </select>
+        </div>
+    </li>
+    <li id="openassessment_turnitin_add_to_index" class="field comp-setting-entry turnitin-setting {% if not turnitin_enabled %}is--hidden{% endif %}">
+        <div class="wrapper-comp-setting">
+            <label for="openassessment_turnitin_add_to_index_editor" class="setting-label">{% trans "Add to index" %}</label>
+            <select id="openassessment_turnitin_add_to_index_editor" class="input setting-input" name="turnitin_add_to_index">
+                <option value="0">{% trans "False"%}</option>
+                <option value="1" {% if turnitin_add_to_index %} selected="true" {% endif %}>{% trans "True"%}</option>
+            </select>
+        </div>
+        <p class="setting-help">{% trans "If set, the submission will be added to all valid node groups for future matching." %}</p>
+    </li>
+    <li id="openassessment_turnitin_auto_exclude_self_matching_scope" class="field comp-setting-entry turnitin-setting {% if not turnitin_enabled %}is--hidden{% endif %}">
+        <div class="wrapper-comp-setting">
+            <label for="openassessment_turnitin_auto_exclude_self_matching_scope_editor" class="setting-label">{% trans "Auto exclude self matching scope" %}</label>
+            <select id="openassessment_turnitin_auto_exclude_self_matching_scope_editor" class="input setting-input" name="turnitin_auto_exclude_self_matching_scope">
+                <option value="0">{% trans "NONE - Exclude no self matching submissions from Similarity Report"%}</option>
+                <option value="1" {% if turnitin_auto_exclude_self_matching_scope %} selected="true" {% endif %}>{% trans "ALL - Exclude all self matching submissions from Similarity Report"%}</option>
+            </select>
+        </div>
+        <p class="setting-help">{% trans "Self matching submissions to exclude from report." %}</p>
+    </li>
+    {% endif %}
+{% else %}
+    <li id="openassessment_display_rubric_step_to_students_wrapper" class="field comp-setting-entry">
+        <div class="wrapper-comp-setting">
+            <label for="openassessment_display_rubric_step_to_students_editor" class="setting-label">{% trans "Display Rubric Step to Students" %}</label>
+            <select id="openassessment_display_rubric_step_to_students_editor" class="input setting-input" name="display_rubric_step_to_students">
+                <option value="0">{% trans "False"%}</option>
+                <option value="1" {% if display_rubric_step_to_students %} selected="true" {% endif %}>{% trans "True"%}</option>
+            </select>
+        </div>
+        <p class="setting-help">{% trans "This allows a specific component within a unit to be hidden from the learner on the page, but displayed for a staff user. Similar to the 'hide from learner' visibility settings feature currently at the unit, subsection, and section levels." %}</p>
+    </li>
+    <li id="openassessment_ungraded_wrapper" class="field comp-setting-entry">
+        <div class="wrapper-comp-setting">
+            <label for="openassessment_ungraded_editor" class="setting-label">{% trans "Ungraded" %}</label>
+            <select id="openassessment_ungraded_editor" class="input setting-input" name="ungraded">
+                <option value="0">{% trans "False (default behaviour, use subsection \"Grade as\" setting)"%}</option>
+                <option value="1" {% if ungraded %} selected="true" {% endif %}>{% trans "True"%}</option>
+            </select>
+        </div>
+        <p class="setting-help">{% trans "Choosing True you exclude rubric from the gradebook." %}</p>
+    </li>
+    <li id="openassessment_display_grader_wrapper" class="field comp-setting-entry">
+        <div class="wrapper-comp-setting">
+            <label for="openassessment_display_grader_editor" class="setting-label">{% trans "Display grader" %}</label>
+            <select id="openassessment_display_grader_editor" class="input setting-input" name="display_grader">
+                <option value="0">{% trans "False"%}</option>
+                <option value="1" {% if display_grader %} selected="true" {% endif %}>{% trans "True"%}</option>
+            </select>
+        </div>
+        <p class="setting-help">{% trans "True adds a field at the top of the rubric to indicate which grader (Name) completed the rubric. False nothing is displayed for grader." %}</p>
+    </li>
+{% endif %}
 </ul>

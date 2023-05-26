@@ -59,7 +59,7 @@ class TeamMixin:
         """
         user = self.get_real_user(anonymous_user_id)
         if not user:
-            logger.error('%s: User lookup for anonymous_user_id %s failed', self.location, anonymous_user_id)
+            #logger.error('%s: User lookup for anonymous_user_id %s failed', self.location, anonymous_user_id)
             raise ObjectDoesNotExist()
         try:
             team = self.teams_service.get_team(user, self.course_id, self.selected_teamset_id)

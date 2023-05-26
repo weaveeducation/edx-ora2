@@ -144,7 +144,9 @@ export class BaseView {
       if (typeof usageID !== 'undefined'
             && $(stepID, currentView.element).hasClass('is--showing')
             && typeof focusID !== 'undefined') {
-        $(focusID, currentView.element).focus();
+        if (this.responseView.isAdditionalRubric === 0) {
+          $(focusID, currentView.element).focus();
+        }
         this.srStatusUpdates.push(text);
       } else if (currentView.announceStatus) {
         this.srStatusUpdates.push(text);

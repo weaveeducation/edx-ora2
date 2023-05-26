@@ -17,6 +17,23 @@
             <div class="ui-slidable__content" aria-labelledby="oa_rubric__{{ rubric_type }}__{{ submission.uuid|default:'dummy_uuid' }}__{{ criterion.order_num }}" id="oa_rubric__{{ rubric_type }}__{{ submission.uuid|default:'dummy_uuid' }}__{{ criterion.order_num }}__content">
                 <div class="question__answers">
                     <div role="group" aria-labelledby="{{ rubric_type }}__assessment__rubric__prompt--{{ criterion.order_num }}">
+                        {% if criterion.use_grading_key %}
+                        <div class="answer">
+                            <div class="wrapper--input">
+                            <label style="font-weight: 600;" for="{{ rubric_type }}__assessment__rubric__question--{{ criterion.name }}">
+                                Enter value from 0 to {{ criterion.grading_key }}:</label>
+                            <input class="openassessment_criterion_grading_key_number input setting-input"
+                                   type="number"
+                                   data-max="{{ criterion.grading_key }}"
+                                   data-criterion-name="{{ criterion.name }}"
+                                   name="{{ rubric_type }}__assessment__rubric__question--{{ criterion.name }}"
+                                   id="{{ rubric_type }}__assessment__rubric__question--{{ criterion.name }}"
+                                   value=""
+                                   min="0"
+                                   max="{{ criterion.grading_key }}">
+                            </div>
+                        </div>
+                        {% else %}
                         {% for option in criterion.options %}
                         <div class="answer">
                             <div class="wrapper--input">
@@ -44,6 +61,7 @@
                             </div>
                         </div>
                         {% endfor %}
+                        {% endif %}
                     </div>
 
                     {% if rubric_type != 'read_only' %}

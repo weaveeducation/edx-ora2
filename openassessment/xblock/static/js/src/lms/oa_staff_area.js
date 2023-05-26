@@ -66,11 +66,14 @@ export class StaffAreaView {
      * @return {promise} A promise representing the successful loading
      *     of the student info section.
      */
-    loadStudentInfo(classToExpand) {
+    loadStudentInfo(classToExpand, userEmail, tabClassName, fnCallback) {
       const view = this;
-      const $manageLearnersTab = $('.openassessment__staff-tools', this.element);
+      const $manageLearnersTab = $('.' + (tabClassName ? tabClassName : 'openassessment__staff-tools'), this.element);
       const $form = $manageLearnersTab.find('.openassessment_student_info_form');
-      const studentUsername = $manageLearnersTab.find('.openassessment__student_username').val();
+      let studentUsername = userEmail;
+      if (!studentUsername) {
+        studentUsername = $manageLearnersTab.find('.openassessment__student_username').val();
+      }
       const showFormError = function (errorMessage) {
         $form.find('.form--error').text(errorMessage).focus();
       };
@@ -78,7 +81,7 @@ export class StaffAreaView {
       const deferred = $.Deferred();
 
       // Clear any previous student information
-      $('.openassessment__student-info', view.element).text('');
+      $manageLearnersTab.find('.openassessment__student-info').text('');
 
       if (studentUsername.trim()) {
         this.server.studentInfo(studentUsername).done((html) => {
@@ -86,7 +89,7 @@ export class StaffAreaView {
           showFormError('');
 
           // Load the HTML and install event handlers
-          $('.openassessment__student-info', view.element).replaceWith(html);
+          $manageLearnersTab.find('.openassessment__student-info').replaceWith(html);
 
           // Install key handler for cancel submission button.
           $manageLearnersTab.on('click', '.action--submit-cancel-submission', function (eventObject) {
@@ -118,9 +121,15 @@ export class StaffAreaView {
                 const target = $(eventObject.currentTarget);
                 const rootElement = target.closest('.openassessment__student-info');
                 const submissionID = rootElement.data('submission-uuid');
+                const studentID = rootElement.data('student-id');
 
                 eventObject.preventDefault();
-                view.submitStaffOverride(submissionID, rubric, $manageLearnersTab);
+
+                if (submissionID) {
+                  view.submitStaffOverride(submissionID, rubric, $manageLearnersTab, fnCallback);
+                } else {
+                  view.submitStaffOverrideWithoutSubmission(studentID, rubric, $manageLearnersTab, fnCallback);
+                }
               },
             );
           }
@@ -133,6 +142,9 @@ export class StaffAreaView {
           if (classToExpand) {
             $manageLearnersTab.find(`.${classToExpand} .${view.baseView.SLIDABLE_CONTENT_CLASS}`)
               .slideDown();
+            if (fnCallback) {
+              $manageLearnersTab.find('.' + classToExpand).addClass(view.baseView.IS_SHOWING_CLASS);
+            }
             $manageLearnersTab.find(`.${classToExpand} .${view.baseView.SLIDABLE_CLASS}`)
               .addClass(view.baseView.IS_SHOWING_CLASS).attr('aria-expanded', 'true').focus();
           }
@@ -307,6 +319,36 @@ export class StaffAreaView {
       });
     }
 
+    loadStudentAndStatuses(fnCallback) {
+      const view = this;
+      const $staffArea = $('.openassessment__staff-area', this.element);
+      view.server.studentStatuses().done(function(studentsLst) {
+        let html = '<table class="staff-info__status__table">';
+        html += '<thead><tr><th>Email</th><th>Username</th><th>Name</th><th>Step</th><th></th></tr></thead>';
+        html += '<tbody>';
+        $.each(studentsLst, function(idx, val) {
+          html += '<tr data-email="' + val.email + '">';
+          html += '<td>' + val.email + '</td>';
+          html += '<td>' + val.username + '</td>';
+          html += '<td>' + val.name + '</td>';
+          html += '<td>' + val.status + '</td>';
+          html += '<td><a href="javascript: void(0);" data-status="' + val.status + '" data-email="' + val.email + '" style="color: #31acee;" class="submit-assessment">Manage</a></td></tr>';
+        });
+        html += '</tbody>';
+        html += '</table>';
+        $staffArea.find('.staff-manage-learner-content').html(html);
+        if (fnCallback) {
+          fnCallback(studentsLst);
+        }
+      });
+    }
+
+    highlightStudentInList(studentEmail) {
+      const $staffTable = $('.staff-info__status__table', this.element);
+      const $studentRow = $staffTable.find('tr[data-email="' + studentEmail + '"]');
+      $studentRow.find('td').css({fontWeight: 700, color: '#2dd52d'});
+    }
+
     /**
      * Install event handlers for the view.
      */
@@ -319,6 +361,38 @@ export class StaffAreaView {
       if ($staffArea.length <= 0) {
         return;
       }
+
+      $staffArea.on('click', '.submit-assessment', function(eventObject) {
+        const studentEmail = $(this).data('email');
+        const studentStatus = $(this).data('status');
+        let classToExpand = 'staff-info__student__grade';
+        eventObject.preventDefault();
+        if (studentStatus === 'waiting') {
+          classToExpand = 'staff-info__staff-override';
+        }
+        view.loadStudentInfo(classToExpand, studentEmail, 'openassessment__staff-manage-learner', function() {
+          $staffArea.find('.staff-manage-learner-content').html('Loading...');
+          $staffArea.find('.openassessment__student-info').html('');
+          view.loadStudentAndStatuses(function(studentsLst) {
+            view.highlightStudentInList(studentEmail);
+
+            const studentIndex = studentsLst.findIndex(function(student) {
+              return student.email === studentEmail;
+            });
+
+            const nextStudent = studentsLst
+              .slice(studentIndex + 1)
+              .concat(studentsLst.slice(0, studentIndex + 1))
+              .find(function(student) {
+                return student.status === 'waiting';
+              });
+
+            if (nextStudent) {
+              view.loadStudentInfo(classToExpand, nextStudent.email, 'openassessment__staff-manage-learner');
+            }
+          });
+        });
+      });
 
       // Install a click handler for the staff button panel
       $staffArea.find('.ui-staff__button').click(
@@ -342,7 +416,17 @@ export class StaffAreaView {
             $staffArea.find('.ui-staff__button').removeClass('is--active').attr('aria-expanded', 'false');
             // Set "is--active" and aria-expanded state on the toggled button.
             $button.addClass('is--active').attr('aria-expanded', 'true');
-            $panel.slideDown();
+            if ($button.hasClass('button-staff-manage-learner')) {
+              $staffArea.find('.staff-manage-learner-content').html('Loading...');
+              $staffArea.find('.openassessment__student-info').html('');
+              $panel.slideDown({
+                complete: function() {
+                  view.loadStudentAndStatuses();
+                }
+              });
+            } else {
+              $panel.slideDown();
+            }
           }
           // For accessibility, move focus to the first focusable component.
           $panel.find('.ui-staff_close_button').focus();
@@ -365,6 +449,23 @@ export class StaffAreaView {
             }
           });
         },
+      );
+
+      $staffArea.find('.ui-list_learners_close_button').click(
+        function(eventObject) {
+          const $button = $(eventObject.currentTarget);
+          const $panel = $button.closest('.wrapper--ui-staff');
+          $staffArea.find('.ui-staff__button').removeClass('is--active').attr('aria-expanded', 'false');
+          $panel.slideUp();
+
+          // For accessibility, move focus back to the tab associated with the closed panel.
+          $staffArea.find('.ui-staff__button').each(function(index, button) {
+            var $staffPanel = $staffArea.find('.' + $(button).data('panel')).first();
+            if ($staffPanel[0] === $panel[0]) {
+              $(button).focus();
+            }
+          });
+        }
       );
 
       // Install key handler for student id field
@@ -548,7 +649,7 @@ export class StaffAreaView {
      * @param {element} scope An ancestor element for the submit button (to allow for shared
      *     classes in different form).
      */
-    submitStaffOverride(submissionID, rubric, scope) {
+    submitStaffOverride(submissionID, rubric, scope, fnCallback) {
       const view = this;
       const successCallback = function () {
         view.baseView.unsavedWarningEnabled(false, view.OVERRIDE_UNSAVED_WARNING_KEY);
@@ -557,9 +658,31 @@ export class StaffAreaView {
         // section expanded. This section will show the learner's
         // final grade and in the future should include details of
         // the staff override itself.
-        view.loadStudentInfo('staff-info__student__grade');
+        if (fnCallback) {
+          fnCallback();
+        } else {
+          view.loadStudentInfo('staff-info__student__grade');
+        }
       };
       this.callStaffAssess(submissionID, rubric, scope, successCallback, '.staff-override-error', 'regrade');
+    }
+
+    submitStaffOverrideWithoutSubmission(studentID, rubric, scope, fnCallback) {
+      const view = this;
+      const successCallback = function() {
+        view.baseView.unsavedWarningEnabled(false, view.OVERRIDE_UNSAVED_WARNING_KEY);
+        // Note: we ignore any message returned from the server and instead
+        // re-render the student info with the "Learner's Final Grade"
+        // section expanded. This section will show the learner's
+        // final grade and in the future should include details of
+        // the staff override itself.
+        if (fnCallback) {
+          fnCallback();
+        } else {
+          view.loadStudentInfo('staff-info__student__grade');
+        }
+      };
+      this.callStaffAssessWithoutSubmission(studentID, rubric, scope, successCallback, '.staff-override-error', 'regrade');
     }
 
     /**
@@ -605,6 +728,18 @@ export class StaffAreaView {
       this.server.staffAssess(
         rubric.optionsSelected(), rubric.criterionFeedback(), rubric.overallFeedback(), submissionID, assessType,
       ).done(successCallback).fail((errorMessage) => {
+        scope.find(errorSelector).html(_.escape(errorMessage));
+        view.staffSubmitEnabled(scope, true);
+      });
+    }
+
+    callStaffAssessWithoutSubmission(studentID, rubric, scope, successCallback, errorSelector, assessType) {
+      const view = this;
+      view.staffSubmitEnabled(scope, false);
+
+      this.server.staffAssessWithoutSubmission(
+        rubric.optionsSelected(), rubric.criterionFeedback(), rubric.overallFeedback(), studentID, assessType
+      ).done(successCallback).fail(function(errorMessage) {
         scope.find(errorSelector).html(_.escape(errorMessage));
         view.staffSubmitEnabled(scope, true);
       });

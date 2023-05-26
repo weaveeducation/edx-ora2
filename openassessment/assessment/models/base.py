@@ -162,8 +162,8 @@ class Criterion(models.Model):
     # Now we're using it only as a unique identifier.
     # We include the "label" (which is displayed to the user)
     # in the data model so we can include it in analytics data packages.
-    name = models.CharField(max_length=100, blank=False)
-    label = models.CharField(max_length=100, blank=True)
+    name = models.CharField(max_length=255, blank=False)
+    label = models.CharField(max_length=255, blank=True)
 
     # 0-based order in the Rubric
     order_num = models.PositiveIntegerField()
@@ -208,8 +208,8 @@ class CriterionOption(models.Model):
     # Now we're using it only as a unique identifier.
     # We include the "label" (which is displayed to the user)
     # in the data model so we can include it in analytics data packages.
-    name = models.CharField(max_length=100)
-    label = models.CharField(max_length=100, blank=True)
+    name = models.CharField(max_length=255)
+    label = models.CharField(max_length=255, blank=True)
 
     # Longer text describing this option and why you should choose it.
     # Example: "The response makes 3-5 Monty Python references and at least one

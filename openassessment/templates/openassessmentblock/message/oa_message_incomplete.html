@@ -1,6 +1,8 @@
 {% load i18n %}
 {% spaceless %}
 <div id="openassessment__message__{{ xblock_id }}" class="openassessment__message message">
+    {% if rubric_count == 0 %}
+    {% else %}
     <h4 class="message__title">{% trans "Status" %}</h4>
     <div class="message__content">
         <p>
@@ -22,7 +24,7 @@
                                 {% endblocktrans %}
                             {% else %}
                                 {% blocktrans %}
-                                    This assignment is in progress. You still need to complete the {{ start_link }}self assessment{{ end_link }} step.
+                                    This assignment is in progress. You still need to complete the "self assessment" step.
                                 {% endblocktrans %}
                             {% endif %}
                         {% endwith %}
@@ -48,7 +50,7 @@
                                 {% endblocktrans %}
                             {% else %}
                                 {% blocktrans %}
-                                    This assignment is in progress. You still need to complete the {{ start_link }}peer assessment{{ end_link }} step.
+                                    This assignment is in progress. You still need to complete the "peer assessment" step.
                                 {% endblocktrans %}
                             {% endif %}
                         {% endwith %}
@@ -57,5 +59,6 @@
             {% endif %}
         </p>
     </div>
+    {% endif %}
 </div>
 {% endspaceless %}

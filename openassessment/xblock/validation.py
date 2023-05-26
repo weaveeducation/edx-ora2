@@ -242,7 +242,7 @@ def validate_rubric(rubric_dict, current_rubric, is_released, _):
     return True, ''
 
 
-def validate_dates(start, end, date_ranges, _):
+def validate_dates(start, end, date_ranges, _, submission_due_empty=False):
     """
     Check that start and due dates are valid.
 
@@ -258,7 +258,7 @@ def validate_dates(start, end, date_ranges, _):
             and msg describes any validation errors found.
     """
     try:
-        resolve_dates(start, end, date_ranges, _)
+        resolve_dates(start, end, date_ranges, _, submission_due_empty)
     except (DateValidationError, InvalidDateFormat) as ex:
         return False, str(ex)
     else:
@@ -319,7 +319,8 @@ def validator(oa_block, _, strict_post_release=True):
     # Import is placed here to avoid model import at project startup.
     from submissions.api import MAX_TOP_SUBMISSIONS
 
-    def _inner(rubric_dict, assessments, leaderboard_show=0, submission_start=None, submission_due=None):
+    def _inner(rubric_dict, assessments, leaderboard_show=0, submission_start=None, submission_due=None,
+               submission_due_empty=False):
         """ Validator method. """
 
         is_released = strict_post_release and oa_block.is_released()
@@ -335,9 +336,10 @@ def validator(oa_block, _, strict_post_release=True):
             'prompts': oa_block.prompts,
             'criteria': oa_block.rubric_criteria
         }
-        success, msg = validate_rubric(rubric_dict, current_rubric, is_released, _)
-        if not success:
-            return False, msg
+        if rubric_dict.get('criteria', None):
+            success, msg = validate_rubric(rubric_dict, current_rubric, is_released, _)
+            if not success:
+                return False, msg
 
         # Training examples
         success, msg = validate_assessment_examples(rubric_dict, assessments, _)
@@ -347,7 +349,8 @@ def validator(oa_block, _, strict_post_release=True):
         # Dates
         submission_dates = [(submission_start, submission_due)]
         assessment_dates = [(asmnt.get('start'), asmnt.get('due')) for asmnt in assessments]
-        success, msg = validate_dates(oa_block.start, oa_block.due, submission_dates + assessment_dates, _)
+        success, msg = validate_dates(oa_block.start, oa_block.due, submission_dates + assessment_dates, _,
+                                      submission_due_empty)
         if not success:
             return False, msg
 

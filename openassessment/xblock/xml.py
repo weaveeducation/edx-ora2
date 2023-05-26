@@ -14,6 +14,7 @@ import pytz
 from lxml import etree
 from openassessment.xblock.data_conversion import update_assessments_format
 from openassessment.xblock.lms_mixin import GroupAccessDict
+from xblock.core import XML_NAMESPACES
 
 log = logging.getLogger(__name__)
 
@@ -156,6 +157,12 @@ def _serialize_criteria(criteria_root, criteria_list):
         # Criterion prompt (default to empty string)
         criterion_prompt = etree.SubElement(criterion_el, 'prompt')
         criterion_prompt.text = str(criterion.get('prompt', ''))
+
+        criterion_use_grading_key = etree.SubElement(criterion_el, 'use_grading_key')
+        criterion_use_grading_key.text = str(criterion.get('use_grading_key', 'False'))
+
+        criterion_grading_key = etree.SubElement(criterion_el, 'grading_key')
+        criterion_grading_key.text = str(criterion.get('grading_key', '0'))
 
         # Criterion feedback disabled, optional, or required
         # If disabled, do not set the attribute.
@@ -411,6 +418,14 @@ def _parse_criteria_xml(criteria_root):
             raise UpdateFromXmlError(
                 'Invalid value for "feedback" attribute: if specified, it must be set set to "optional" or "required".'
             )
+
+        criterion_use_grading_key = criterion.find('use_grading_key')
+        if criterion_use_grading_key is not None:
+            criterion_dict['use_grading_key'] = _parse_boolean(criterion_use_grading_key.text)
+
+        criterion_grading_key = criterion.find('grading_key')
+        if criterion_grading_key is not None:
+            criterion_dict['grading_key'] = int(criterion_grading_key.text)
 
         # Criterion options
         criterion_dict['options'] = _parse_options_xml(criterion)
@@ -711,6 +726,9 @@ def serialize_content_to_xml(oa_block, root):
     if oa_block.submission_due is not None:
         root.set('submission_due', str(oa_block.submission_due))
 
+    if oa_block.submission_due_empty is not None:
+        root.set('submission_due_empty', str(oa_block.submission_due_empty))
+
     # Set leaderboard show
     if oa_block.leaderboard_show:
         root.set('leaderboard_show', str(oa_block.leaderboard_show))
@@ -741,6 +759,36 @@ def serialize_content_to_xml(oa_block, root):
     if oa_block.allow_latex is not None:
         root.set('allow_latex', str(oa_block.allow_latex))
 
+    if oa_block.include_all_learners is not None:
+        root.set('include_all_learners', str(oa_block.include_all_learners))
+
+    if oa_block.turnitin_enabled is not None:
+        root.set('turnitin_enabled', str(oa_block.turnitin_enabled))
+
+    if oa_block.turnitin_config:
+        root.set('turnitin_config', str(json.dumps(oa_block.turnitin_config)))
+
+    if oa_block.block_unique_id is not None:
+        root.set('block_unique_id', str(oa_block.block_unique_id))
+
+    if oa_block.source_block_unique_id is not None:
+        root.set('source_block_unique_id', str(oa_block.source_block_unique_id))
+
+    if oa_block.support_multiple_rubrics is not None:
+        root.set('support_multiple_rubrics', str(oa_block.support_multiple_rubrics))
+
+    if oa_block.is_additional_rubric is not None:
+        root.set('is_additional_rubric', str(oa_block.is_additional_rubric))
+
+    if oa_block.ungraded is not None:
+        root.set('ungraded', str(oa_block.ungraded))
+
+    if oa_block.display_rubric_step_to_students is not None:
+        root.set('display_rubric_step_to_students', str(oa_block.display_rubric_step_to_students))
+
+    if oa_block.display_grader is not None:
+        root.set('display_grader', str(oa_block.display_grader))
+
     # Set group access setting if not empty
     if oa_block.group_access:
         root.set('group_access', json.dumps(GroupAccessDict().to_json(oa_block.group_access)))
@@ -762,6 +810,12 @@ def serialize_content_to_xml(oa_block, root):
     # Rubric
     rubric_root = etree.SubElement(root, 'rubric')
     serialize_rubric(rubric_root, oa_block)
+
+    for aside in oa_block.runtime.get_asides(oa_block):
+        if aside.needs_serialization():
+            aside_node = etree.Element("unknown_root", nsmap=XML_NAMESPACES)
+            aside.add_xml_to_node(aside_node)
+            root.append(aside_node)
 
     # Team info
     if oa_block.teams_enabled is not None:
@@ -878,6 +932,10 @@ def parse_from_xml(root):
     if 'submission_due' in root.attrib:
         submission_due = parse_date(str(root.attrib['submission_due']), name="submission due date")
 
+    submission_due_empty = False
+    if 'submission_due_empty' in root.attrib:
+        submission_due_empty = _parse_boolean(str(root.attrib['submission_due_empty']))
+
     text_response = None
     if 'text_response' in root.attrib:
         text_response = str(root.attrib['text_response'])
@@ -909,6 +967,48 @@ def parse_from_xml(root):
     allow_latex = False
     if 'allow_latex' in root.attrib:
         allow_latex = _parse_boolean(str(root.attrib['allow_latex']))
+
+    include_all_learners = False
+    if 'include_all_learners' in root.attrib:
+        include_all_learners = _parse_boolean(str(root.attrib['include_all_learners']))
+
+    turnitin_enabled = False
+    if 'turnitin_enabled' in root.attrib:
+        turnitin_enabled = _parse_boolean(str(root.attrib['turnitin_enabled']))
+
+    turnitin_config = {}
+    if 'turnitin_config' in root.attrib:
+        turnitin_config = str(root.attrib['turnitin_config'])
+        if turnitin_config:
+            turnitin_config = json.loads(turnitin_config)
+
+    block_unique_id = ''
+    if 'block_unique_id' in root.attrib:
+        block_unique_id = str(root.attrib['block_unique_id'])
+
+    source_block_unique_id = ''
+    if 'source_block_unique_id' in root.attrib:
+        source_block_unique_id = str(root.attrib['source_block_unique_id'])
+
+    support_multiple_rubrics = False
+    if 'support_multiple_rubrics' in root.attrib:
+        support_multiple_rubrics = _parse_boolean(str(root.attrib['support_multiple_rubrics']))
+
+    is_additional_rubric = False
+    if 'is_additional_rubric' in root.attrib:
+        is_additional_rubric = _parse_boolean(str(root.attrib['is_additional_rubric']))
+
+    ungraded = False
+    if 'ungraded' in root.attrib:
+        ungraded = _parse_boolean(str(root.attrib['ungraded']))
+
+    display_rubric_step_to_students = True
+    if 'display_rubric_step_to_students' in root.attrib:
+        display_rubric_step_to_students = _parse_boolean(str(root.attrib['display_rubric_step_to_students']))
+
+    display_grader = False
+    if 'display_grader' in root.attrib:
+        display_grader = _parse_boolean(str(root.attrib['display_grader']))
 
     group_access = {}
     if 'group_access' in root.attrib:
@@ -977,6 +1077,16 @@ def parse_from_xml(root):
         'white_listed_file_types': white_listed_file_types,
         'allow_multiple_files': allow_multiple_files,
         'allow_latex': allow_latex,
+        'include_all_learners': include_all_learners,
+        'turnitin_enabled': turnitin_enabled,
+        'turnitin_config': turnitin_config,
+        'block_unique_id': block_unique_id,
+        'source_block_unique_id': source_block_unique_id,
+        'support_multiple_rubrics': support_multiple_rubrics,
+        'is_additional_rubric': is_additional_rubric,
+        'ungraded': ungraded,
+        'display_rubric_step_to_students': display_rubric_step_to_students,
+        'display_grader': display_grader,
         'group_access': group_access,
         'leaderboard_show': leaderboard_show,
         'teams_enabled': teams_enabled,

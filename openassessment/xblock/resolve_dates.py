@@ -62,7 +62,7 @@ def parse_date_value(date, _):
     return _parse_date(date, _)
 
 
-def resolve_dates(start, end, date_ranges, _):
+def resolve_dates(start, end, date_ranges, _, submission_due_empty=False):
     """
     Resolve date strings (including "default" dates) to datetimes.
     The basic rules are:
@@ -215,10 +215,11 @@ def resolve_dates(start, end, date_ranges, _):
             raise DateValidationError(msg)
 
         if step_end > prev_end:
-            msg = _("This step's due date '{due}' cannot be later than the next step's due date '{prev}'.").format(
-                due=step_end, prev=prev_end
-            )
-            raise DateValidationError(msg)
+            if not (index > 0 and submission_due_empty):
+                msg = _("This step's due date '{due}' cannot be later than the next step's due date '{prev}'.").format(
+                    due=step_end, prev=prev_end
+                )
+                raise DateValidationError(msg)
 
         resolved_starts.append(step_start)
         resolved_ends.insert(0, step_end)
