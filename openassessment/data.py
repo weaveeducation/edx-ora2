@@ -954,11 +954,14 @@ class OraDownloadData:
 
     @classmethod
     def _download_file_by_key(cls, key):
+        from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
+        lms_root_url = configuration_helpers.get_value('LMS_ROOT_URL', settings.LMS_ROOT_URL)
+
         url = get_download_url(key)
         if not url:
             raise FileMissingException
         download_url = urljoin(
-            settings.LMS_ROOT_URL, url
+            lms_root_url, url
         )
 
         response = requests.get(download_url)

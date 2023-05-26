@@ -180,13 +180,6 @@ export class CourseItemsListingView {
         num: true,
         editable: false,
       },
-      {
-        name: 'staff_grader',
-        label: gettext('Staff Grader'),
-        cell: ESGCell,
-        num: true,
-        editable: false,
-      },
     ];
   }
 
